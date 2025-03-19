@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "705647658689",
+    "project_id": "lunasin-c3",
+    "storage_bucket": "lunasin-c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:705647658689:android:be8193010efc160adc3640",
+        "android_client_info": {
+          "package_name": "com.example.lunasin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "705647658689-7s8bhrbm5nr8388it2elcb8uar6cqm84.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lunasin",
+            "certificate_hash": "e3c8f4fd5798f607bac63dd3c08be9c638a936f6"
+          }
+        },
+        {
+          "client_id": "705647658689-u4vdhpllbf5j0so3p7r3kub5jg0raf2m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJXUEZ3BhVwsAYfyPU9NHBakrAl8ji8Ow"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "705647658689-u4vdhpllbf5j0so3p7r3kub5jg0raf2m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
