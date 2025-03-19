@@ -12,6 +12,37 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.lunasin.navigation.Screen
 import com.example.lunasin.viewmodel.AuthViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+
+@Composable
+fun GoogleSignInButton(authViewModel: AuthViewModel, navController: NavController, context: Context) {
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                account?.idToken?.let { idToken ->
+                    authViewModel.signInWithGoogle(idToken)
+                }
+            } catch (e: ApiException) {
+                Log.e("GoogleSignIn", "Sign in failed", e)
+            }
+        }
+    )
+
+    Button(onClick = {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("705647658689-u4vdhpllbf5j0so3p7r3kub5jg0raf2m.apps.googleusercontent.com") // Ganti dengan Web Client ID dari Firebase
+            .requestEmail()
+            .build()
+        val googleSignInClient = GoogleSignIn.getClient(context, gso)
+        launcher.launch(googleSignInClient.signInIntent)
+    }) {
+        Text("Sign in with Google")
+    }
+}
 
 @Composable
 fun LoginScreen(authViewModel: AuthViewModel, navController: NavController) {
