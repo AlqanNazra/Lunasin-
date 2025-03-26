@@ -8,6 +8,7 @@ import com.example.lunasin.navigation.NavGraph
 import com.example.lunasin.viewmodel.AuthViewModel
 import com.example.lunasin.viewmodel.AuthViewModelFactory
 import com.example.lunasin.data.AuthRepository
+import com.example.lunasin.theme.LunasinTheme
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +22,9 @@ class MainActivity : ComponentActivity() {
         authViewModel = ViewModelProvider(this, factory)[AuthViewModel::class.java]
 
         setContent {
-            NavGraph(authViewModel)
+            LunasinTheme {
+                NavGraph(authViewModel)
+            }
         }
     }
 }

@@ -21,5 +21,8 @@ fun NavGraph(authViewModel: AuthViewModel) {
         composable(Screen.Home.route) {
             HomeScreen(authViewModel, navController)
         }
+        composable(Screen.ForgotScreen.route) {
+            ForgotPasswordScreen(navController, authViewModel::resetPassword)
+        }
     }
 }

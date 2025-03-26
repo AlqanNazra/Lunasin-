@@ -1,11 +1,15 @@
 package com.example.lunasin.data
 
+import android.util.Log
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.AuthResult
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.tasks.await
 
-class AuthRepository(private val auth: FirebaseAuth) {
+open class AuthRepository(private val auth: FirebaseAuth) {
 
     suspend fun signUp(email: String, password: String): AuthResult? {
         return try {
@@ -23,14 +27,17 @@ class AuthRepository(private val auth: FirebaseAuth) {
         }
     }
 
-    suspend fun signInWithGoogle(idToken: String): AuthResult? {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
+    suspend fun signInWithGoogle(idToken: String): FirebaseUser? {
         return try {
-            auth.signInWithCredential(credential).await()
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = Firebase.auth.signInWithCredential(credential).await()
+            authResult.user
         } catch (e: Exception) {
+            Log.e("AuthRepo", "Google Sign-In failed", e)
             null
         }
     }
+
 
     fun signOut() {
         auth.signOut()

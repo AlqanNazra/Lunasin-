@@ -2,16 +2,20 @@ package com.example.lunasin.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import androidx.navigation.NavController
 import com.example.lunasin.data.AuthRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.lunasin.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 
-class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
+open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
+
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
@@ -44,6 +48,19 @@ class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
             _isAuthenticated.value = result != null
         }
     }
+
+    fun resetPassword(email: String, onComplete: (Boolean, String?) -> Unit) {
+        FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onComplete(true, "Password reset email sent!")
+                } else {
+                    onComplete(false, task.exception?.message ?: "Unknown error occurred")
+                }
+            }
+    }
+
+
 
     fun signOut() {
         authRepo.signOut()
