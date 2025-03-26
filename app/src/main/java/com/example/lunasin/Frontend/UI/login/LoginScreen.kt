@@ -220,7 +220,7 @@ fun LoginScreen(authViewModel: AuthViewModel, navController: NavController) {
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
             Toast.makeText(context, "Login berhasil", Toast.LENGTH_SHORT).show()
-            navController.navigate(Screen.Home.route) {
+            navController.navigate(Screen.ListHutangScreen.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
         }

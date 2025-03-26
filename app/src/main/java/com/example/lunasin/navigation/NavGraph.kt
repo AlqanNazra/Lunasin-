@@ -1,16 +1,20 @@
 package com.example.lunasin.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
+import com.example.lunasin.Frontend.UI.Inputhutang.ListHutangScreen
 import com.example.lunasin.Frontend.UI.login.HomeScreen
 import com.example.lunasin.ui.screens.*
 import com.example.lunasin.viewmodel.AuthViewModel
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 
 @Composable
 fun NavGraph(authViewModel: AuthViewModel) {
     val navController = rememberNavController()
+    val hutangViewModel: HutangViewModel = viewModel()
 
     NavHost(navController = navController, startDestination = Screen.Login.route) {
         composable(Screen.Login.route) {
@@ -24,6 +28,9 @@ fun NavGraph(authViewModel: AuthViewModel) {
         }
         composable(Screen.ForgotScreen.route) {
             ForgotPasswordScreen(navController, authViewModel::resetPassword)
+        }
+        composable(Screen.ListHutangScreen.route) {
+            ListHutangScreen(hutangViewModel, navController)  // Gunakan instance hutangViewModel
         }
     }
 }
