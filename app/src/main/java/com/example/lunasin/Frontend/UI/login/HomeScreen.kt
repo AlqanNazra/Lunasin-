@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.UI.navigation.Screen
-import com.example.lunasin.Frontend.viewmodel.Authentifikasi.AuthViewModel
+import com.example.lunasin.viewmodel.AuthViewModel
 
 @Composable
 fun HomeScreen(authViewModel: AuthViewModel, navController: NavController) {

@@ -7,11 +7,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
 import com.example.lunasin.Frontend.UI.Inputhutang.InputHutangScreen
 import com.example.lunasin.Frontend.UI.login.*
-import com.example.lunasin.Frontend.viewmodel.Authentifikasi.AuthViewModel
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.UI.Inputhutang.PreviewHutangScreen
 import com.example.lunasin.Frontend.UI.Inputhutang.TanggalTempoScreen
 import com.example.lunasin.Frontend.UI.Inputhutang.ListHutangScreen
+import com.example.lunasin.ui.screens.ForgotPasswordScreen
+import com.example.lunasin.ui.screens.LoginScreen
+import com.example.lunasin.ui.screens.SignUpScreen
+import com.example.lunasin.viewmodel.AuthViewModel
 
 
 @Composable
@@ -20,9 +23,20 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
 
     NavHost(
         navController = navController,
-        startDestination = "list_hutang_screen"
+        startDestination = Screen.Login.route
     ) {
-        composable("login_screen") { LoginScreen(authViewModel, navController) }
+        composable(Screen.Login.route) {
+            LoginScreen(authViewModel, navController)
+        }
+        composable(Screen.SignUp.route) {
+            SignUpScreen(authViewModel, navController)
+        }
+        composable(Screen.Home.route) {
+            HomeScreen(authViewModel, navController)
+        }
+        composable(Screen.ForgotScreen.route) {
+            ForgotPasswordScreen(navController, authViewModel::resetPassword)
+        }
         composable("input_hutang_screen") {
             InputHutangScreen(hutangViewModel, navController)
         }

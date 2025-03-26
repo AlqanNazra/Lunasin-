@@ -1,4 +1,4 @@
-package com.example.lunasin.Frontend.UI.login
+package com.example.lunasin.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.lunasin.Frontend.viewmodel.Authentifikasi.AuthViewModel
+import com.example.lunasin.viewmodel.AuthViewModel
 
 @Composable
 fun SignUpScreen(authViewModel: AuthViewModel, navController: NavController) {
@@ -22,11 +22,11 @@ fun SignUpScreen(authViewModel: AuthViewModel, navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+        TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") })
+        TextField(value = password, onValueChange = { password = it }, label = { Text("Password") })
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirm Password") })
+        TextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirm Password") })
         Spacer(modifier = Modifier.height(8.dp))
 
         if (!errorMessage.isNullOrEmpty()) {
@@ -45,7 +45,7 @@ fun SignUpScreen(authViewModel: AuthViewModel, navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = { navController.navigate("login_screen") }) {
+        Button(onClick = { navController.navigate("login_screen") }) {
             Text("Already have an account? Login")
         }
     }

@@ -4,12 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lunasin.Frontend.UI.navigation.NavGraph
 import com.example.lunasin.Backend.Data.login_Data.AuthRepository
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
+import com.example.lunasin.Frontend.UI.navigation.Screen
 import com.example.lunasin.Frontend.viewmodel.Authentifikasi.*
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModelFactory
+import com.example.lunasin.theme.LunasinTheme
+import com.example.lunasin.viewmodel.AuthViewModel
 
 import com.google.firebase.auth.FirebaseAuth
 
@@ -32,7 +36,13 @@ class MainActivity : ComponentActivity() {
 
 
         setContent {
-            NavGraph(authViewModel, hutangViewModel, startDestination = "laporan_hutang_screen")
+            LunasinTheme {
+                val authViewModel: AuthViewModel = viewModel()
+                val hutangViewModel: HutangViewModel = viewModel()
+                val startDestination = Screen.Login.route // atau sesuaikan dengan yang kamu butuhkan
+
+                NavGraph(authViewModel, hutangViewModel, startDestination)
+            }
         }
     }
 }
