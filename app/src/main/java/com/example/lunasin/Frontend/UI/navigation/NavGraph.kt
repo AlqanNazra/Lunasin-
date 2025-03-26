@@ -35,9 +35,7 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
             val docId = backStackEntry.arguments?.getString("docId") ?: ""
             TanggalTempoScreen(hutangViewModel, navController, docId)
         }
-        composable("laporan_hutang_screen") {
-            ListHutangScreen(hutangViewModel, navController)
-        }
+        composable("list_hutang_screen") { ListHutangScreen(hutangViewModel, navController) }
 
 
     }

@@ -26,6 +26,72 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     private val _hutangList = MutableStateFlow<List<Hutang>>(emptyList())
     val hutangList: StateFlow<List<Hutang>> = _hutangList
 
+    // Hitung denda
+    fun dendaBunga_Tahunan(sisahutang:Double, bunga:Double, telat:Int): Double
+    {
+       val  Per_bunga = bunga / 100
+       val denda1 = Per_bunga/365
+        val denda2 = denda1 * sisahutang
+       return denda2 * telat
+    }
+
+    fun dendaBunga_Bulan(sisahutang:Double, bunga:Double, telat:Int): Double
+    {
+        val  Per_bunga = bunga / 100
+        val denda1 = Per_bunga/12
+        val denda2 = denda1 * sisahutang
+        return denda2 * telat
+    }
+
+    fun dendaTetap (denda : Int, Telat : Int) : Int
+    {
+        return denda * Telat
+    }
+
+    fun denda_Cicilan(sisahutang:Double, bunga:Double, telat:Int): Double
+    {
+        val  Per_bunga = bunga / 100
+        val denda1 = Per_bunga * sisahutang
+        return denda1 * telat
+    }
+
+    // Personaliasi Akun
+    fun Debt_to_Income(Totalpembayaran: Double, Pendapatan: Double): String {
+        val dti = (Totalpembayaran / Pendapatan) * 100
+        return if (dti >= 40) {
+            "Warning: DTI Anda $dti% - Risiko tinggi!"
+        } else {
+            "Aman: DTI Anda $dti% - Keuangan stabil."
+        }
+    }
+
+    fun debt_Service_Coverage_Ratio(pendapatan: Double,totalcicilan: Double): String {
+        val dscr = totalcicilan / pendapatan
+        return if (dscr >= 1)
+        {
+            "Aman : Resiko Gagal bayar aman"
+        }
+        else
+        {
+            "Warning: Resiko Gagal bayar tinggi."
+        }
+    }
+
+    fun rumus_Amorsiasi(angsuranPerbulan: Double, bunga: Double, lamaPinjam: Int): Double {
+        val bunga1 = bunga/100
+        val total1 = 1 + bunga1
+        val total2_pembagi = pangkat(total1,lamaPinjam) - 1
+
+        val total1_penyebut = pangkat(total1,lamaPinjam)
+        val total2_penyebut = total1_penyebut * bunga1 * angsuranPerbulan
+
+        return total2_penyebut/total2_pembagi
+    }
+
+
+
+
+
 //    fun getHutangById(docId: String) {
 //        viewModelScope.launch {
 //            try {

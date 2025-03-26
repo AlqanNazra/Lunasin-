@@ -31,7 +31,6 @@ class MainActivity : ComponentActivity() {
         hutangViewModel = ViewModelProvider(this, hutangFactory)[HutangViewModel::class.java]
 
 
-
         setContent {
             NavGraph(authViewModel, hutangViewModel, startDestination = "laporan_hutang_screen")
         }
