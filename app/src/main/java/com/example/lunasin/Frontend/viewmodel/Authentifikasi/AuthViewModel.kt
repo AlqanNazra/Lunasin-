@@ -33,14 +33,16 @@ open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
     fun signIn(email: String, password: String, navController: NavController) {
         viewModelScope.launch {
             val result = authRepo.signIn(email, password)
-            if (result == null) {
-                _errorMessage.value = "Login gagal! Periksa kembali email dan password."
-            } else {
+            if (result?.user != null) {
                 _isAuthenticated.value = true
+                Log.d("AuthViewModel", "Login sukses: userId = ${result.user?.uid}")
                 navController.navigate(Screen.Home.route)
+            } else {
+                _errorMessage.value = "Login gagal! Periksa kembali email dan password."
             }
         }
     }
+
 
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {

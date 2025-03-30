@@ -4,11 +4,11 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-03-23T14:02:25.763295600Z">
+        <DropdownSelection timestamp="2025-03-29T10:11:46.066086400Z">
           <Target type="DEFAULT_BOOT">
-            <template>
-              <DeviceId pluginId="FirebaseDirectAccess" type="TEMPLATE" identifier="model_id=tokay/35" />
-            </template>
+            <handle>
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\alqan\.android\avd\Pixel_6_Pro.avd" />
+            </handle>
           </Target>
         </DropdownSelection>
         <DialogSelection />

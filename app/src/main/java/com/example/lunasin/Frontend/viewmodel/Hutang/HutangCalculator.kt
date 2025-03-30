@@ -1,25 +1,12 @@
 package com.example.lunasin.Frontend.viewmodel.Hutang
 
 import android.util.Log
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.lunasin.Backend.Service.management_BE.FirestoreService
-import com.example.lunasin.Backend.model.Hutang
-import com.example.lunasin.Backend.model.Tempo
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
 import java.util.Locale
 
-class HitungHutangaViewModel {
+object HutangCalculator {
     // Hitung denda
     fun dendaBunga_Tahunan(sisahutang:Double, bunga:Double, telat:Int): Double
     {
@@ -37,7 +24,7 @@ class HitungHutangaViewModel {
         return denda2 * telat
     }
 
-    fun dendaTetap (denda : Int, Telat : Int) : Int
+    fun dendaTetap (denda : Double, Telat : Double) : Double
     {
         return denda * Telat
     }

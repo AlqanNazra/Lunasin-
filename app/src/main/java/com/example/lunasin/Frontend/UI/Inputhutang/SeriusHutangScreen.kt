@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 import java.util.*
 
 @Composable
-fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
+fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
     val context = LocalContext.current
     var namaPinjaman by remember { mutableStateOf("") }
     var nominalPinjaman by remember { mutableStateOf("") }
@@ -29,6 +29,8 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
     var periodePinjaman by remember { mutableStateOf("") }
     var tanggalPinjam by remember { mutableStateOf("Pilih Tanggal") }
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
+    var catatan by remember { mutableStateOf("") }
+
 
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
@@ -105,6 +107,15 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
             }
         )
 
+        // Input Catatan
+        OutlinedTextField(
+            value = catatan,
+            onValueChange = { catatan = it },
+            label = { Text("Catatan") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Tombol Confirm
@@ -127,8 +138,8 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 isLoading = true
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
-                hutangViewModel.hitungDanSimpanHutang(
-                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam,
+                hutangViewModel.hitungDanSimpanHutang_Serius(
+                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
