@@ -128,7 +128,7 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
                 hutangViewModel.hitungDanSimpanHutang(
-                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam
+                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam,
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {

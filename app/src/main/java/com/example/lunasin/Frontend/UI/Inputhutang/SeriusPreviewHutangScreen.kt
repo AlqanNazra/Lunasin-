@@ -15,6 +15,7 @@ import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.utils.formatRupiah
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
 @Composable
 fun PreviewHutangScreen(
@@ -71,9 +72,9 @@ fun PreviewHutangScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Total Bunga: ${viewModel.formatRupiah(hutang?.totalbunga ?: 0.0)}")
-                            Text(text = "Total Hutang: ${viewModel.formatRupiah(hutang?.totalHutang ?: 0.0)}")
-                            Text(text = "Cicilan per Bulan: ${viewModel.formatRupiah(hutang?.totalcicilan ?: 0.0)}")
+                            Text(text = "Total Bunga: ${hutangca.formatRupiah(hutang?.totalbunga ?: 0.0)}")
+                            Text(text = "Total Hutang: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
+                            Text(text = "Cicilan per Bulan: ${hutangca.formatRupiah(hutang?.totalcicilan ?: 0.0)}")
                         }
                     }
 
@@ -92,7 +93,7 @@ fun PreviewHutangScreen(
 
                         Button(
                             onClick = {
-                                navController.navigate("laporan_hutang_screen") // Hanya pindah ke halaman home
+                                navController.navigate("list_hutang_screen") // Hanya pindah ke halaman home
                             },
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green) // Warna tombol tetap hijau
                         ) {
