@@ -114,7 +114,6 @@ fun LoginScreen(authViewModel: AuthViewModel, navController: NavController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp), // Tambahkan padding agar tidak mentok ke sisi layar
-                    visualTransformation = PasswordVisualTransformation(),
                     shape = RoundedCornerShape(12.dp), // Membuat sudut membulat
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface, // Background saat fokus
