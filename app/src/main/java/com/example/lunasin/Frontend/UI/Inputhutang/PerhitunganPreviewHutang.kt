@@ -14,10 +14,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.utils.formatRupiah
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
 @Composable
-fun PreviewHutangScreen(
+fun PerhitunganPreviewHutangScreen(
     viewModel: HutangViewModel,
     navController: NavController,
     docId: String
@@ -71,9 +71,23 @@ fun PreviewHutangScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Total Bunga: ${viewModel.formatRupiah(hutang?.totalbunga ?: 0.0)}")
-                            Text(text = "Total Hutang: ${viewModel.formatRupiah(hutang?.totalHutang ?: 0.0)}")
-                            Text(text = "Cicilan per Bulan: ${viewModel.formatRupiah(hutang?.totalcicilan ?: 0.0)}")
+                            Text(text = "Dendan Bila Telat: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Menampilkan Catatan
+                    Text(text = "Catatan:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Card(
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = 2.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                    ) {
+                        Box(modifier = Modifier.padding(16.dp)) {
+                            Text(text = hutang?.catatan ?: "Tidak ada catatan")
                         }
                     }
 
@@ -84,17 +98,17 @@ fun PreviewHutangScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Button(
-                            onClick = { navController.popBackStack() }, // Kembali ke layar sebelumnya
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red) // Ganti containerColor -> backgroundColor
+                            onClick = { navController.popBackStack() },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
                         ) {
                             Text("Kembali", color = Color.White)
                         }
 
                         Button(
                             onClick = {
-                                navController.navigate("laporan_hutang_screen") // Hanya pindah ke halaman home
+                                navController.navigate("list_hutang_screen")
                             },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green) // Warna tombol tetap hijau
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
                         ) {
                             Text("Confirm", color = Color.White)
                         }
@@ -107,14 +121,16 @@ fun PreviewHutangScreen(
                                     Log.e("LihatJatuhTempo", "docId NULL atau kosong")
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue) // Ganti containerColor -> backgroundColor
+                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue)
                         ) {
                             Text("Lihat Jatuh Tempo", color = Color.White)
                         }
-
                     }
                 }
             }
         }
     }
+}
+
+class PilihHutangScreen {
 }

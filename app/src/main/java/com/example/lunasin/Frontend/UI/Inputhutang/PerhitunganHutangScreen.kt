@@ -3,12 +3,28 @@ package com.example.lunasin.Frontend.UI.Inputhutang
 import android.app.DatePickerDialog
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -18,10 +34,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import kotlinx.coroutines.delay
-import java.util.*
+import java.util.Calendar
 
 @Composable
-fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
+fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
     val context = LocalContext.current
     var namaPinjaman by remember { mutableStateOf("") }
     var nominalPinjaman by remember { mutableStateOf("") }
@@ -29,6 +45,8 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
     var periodePinjaman by remember { mutableStateOf("") }
     var tanggalPinjam by remember { mutableStateOf("Pilih Tanggal") }
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
+    var catatan by remember { mutableStateOf("") }
+
 
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
@@ -73,7 +91,7 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
         OutlinedTextField(
             value = bunga,
             onValueChange = { bunga = it },
-            label = { Text("Bunga per Bulan (%)") },
+            label = { Text("Denda Bila Telat Bayar") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
@@ -105,6 +123,15 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
             }
         )
 
+        // Input Catatan
+        OutlinedTextField(
+            value = catatan,
+            onValueChange = { catatan = it },
+            label = { Text("Catatan") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Tombol Confirm
@@ -127,8 +154,8 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 isLoading = true
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
-                hutangViewModel.hitungDanSimpanHutang(
-                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam
+                hutangViewModel.hitungDanSimpanHutang_Perhitungan(
+                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
@@ -156,7 +183,7 @@ fun InputHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
             navigateToPreview?.let { docId ->
                 showPopup = false
                 delay(500)
-                navController.navigate("preview_hutang/$docId")  // Navigasi ke Preview Hutang
+                navController.navigate("perhitungan_preview_hutang/$docId")  // Navigasi ke Preview Hutang
                 navigateToPreview = null
             }
         }

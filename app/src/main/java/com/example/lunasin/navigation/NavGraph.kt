@@ -30,7 +30,7 @@ fun NavGraph(authViewModel: AuthViewModel) {
             ForgotPasswordScreen(navController, authViewModel::resetPassword)
         }
         composable(Screen.ListHutangScreen.route) {
-            ListHutangScreen(hutangViewModel, navController)  // Gunakan instance hutangViewModel
+            ListHutangScreen(hutangViewModel, navController)
         }
     }
 }

@@ -19,15 +19,38 @@ class FirestoreService {
         }
     }
 
+    fun simpanHutang(hutang: Hutang, onComplete: (Boolean) -> Unit) {
+        firestore.collection("hutang")
+            .add(hutang)
+            .addOnSuccessListener {
+                Log.d("FirestoreService", "Hutang berhasil disimpan dengan ID: ${it.id}")
+                onComplete(true)
+            }
+            .addOnFailureListener { e ->
+                Log.e("FirestoreService", "Gagal menyimpan hutang", e)
+                onComplete(false)
+            }
+    }
 
-    suspend fun getHutang(): List<Hutang> {
+    suspend fun getHutang(): List<Hutang>? {
         return try {
-            val snapshot = firestore.collection("hutang").get().await()
-            snapshot.documents.mapNotNull { it.toObject(Hutang::class.java) }
+            val snapshot = firestore.collection("hutang")
+                .get()
+                .await()
+
+            if (!snapshot.isEmpty) {
+                snapshot.documents.map { document ->
+                    document.toObject(Hutang::class.java)?.copy(docId = document.id)
+                }.filterNotNull()
+            } else {
+                emptyList()
+            }
         } catch (e: Exception) {
-            emptyList() // Kembalikan list kosong jika ada error
+            Log.e("FirestoreError", "Gagal mengambil data hutang", e)
+            emptyList()
         }
     }
+
 
     suspend fun getHutangById(docId: String): Hutang? {
         return try {
@@ -46,4 +69,5 @@ class FirestoreService {
             false
         }
     }
+
 }
