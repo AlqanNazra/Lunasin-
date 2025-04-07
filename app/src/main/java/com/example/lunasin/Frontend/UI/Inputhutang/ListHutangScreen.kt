@@ -75,7 +75,7 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
                 Log.e("ListHutangScreen", "hutangList kosong, tidak ada data yang ditampilkan!")
             } else {
                 hutangList.forEach { hutang ->
-                    HutangItem(hutang, navController)
+                    HutangItem(hutang, navController, hutangViewModel)
                 }
             }
         }
@@ -83,7 +83,7 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
 }
 
 @Composable
-fun HutangItem(hutang: Hutang, navController: NavHostController) {
+fun HutangItem(hutang: Hutang, navController: NavHostController, hutangViewModel: HutangViewModel) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
@@ -126,6 +126,7 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
+
             Button(
                 onClick = {
                     Log.d("ListHutangScreen", "Button diklik, docId: ${hutang.docId}")
@@ -138,6 +139,22 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Lihat Detail")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                    hutangViewModel.hapusHutang(hutang.docId) {
+                        hutangViewModel.ambilDataHutang(userId)
+                    }
+                    Toast.makeText(context, "Hutang berhasil dihapus", Toast.LENGTH_SHORT).show()
+                },
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Hapus Hutang", color = Color.White)
             }
         }
     }

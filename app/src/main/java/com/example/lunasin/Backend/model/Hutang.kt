@@ -1,6 +1,8 @@
 package com.example.lunasin.Backend.model
 
 
+
+
 data class Tempo(
     val angsuranKe: Int = 0,
     val tanggalTempo: String = ""
@@ -35,9 +37,10 @@ data class Hutang(
     val totalcicilan: Double = 0.0,
     val totalbunga: Double = 0.0,
     val catatan: String = "",
-    val listTempo: List<Tempo> = emptyList()
+    var id_penerima: String? = null, // Bisa null jika belum diklaim
+    val listTempo: List<Tempo> = emptyList(),
 ) {
-    fun toMap(): Map<String, Any> {
+    fun toMap(): Map<String, Any?> { // id_penerima bisa null, jadi pakai Any?
         return mapOf(
             "docId" to docId,
             "userId" to userId,
@@ -50,6 +53,8 @@ data class Hutang(
             "tanggalBayar" to tanggalBayar,
             "totalcicilan" to totalcicilan,
             "totalbunga" to totalbunga,
+            "catatan" to catatan,
+            "id_penerima" to id_penerima, // Tambahkan ini agar bisa disimpan
             "listTempo" to listTempo.map { it.toMap() } // Konversi list ke List<Map<String, Any>>
         )
     }
@@ -68,11 +73,14 @@ data class Hutang(
                 tanggalBayar = map["tanggalBayar"] as? String ?: "",
                 totalcicilan = (map["totalcicilan"] as? Double) ?: 0.0,
                 totalbunga = (map["totalbunga"] as? Double) ?: 0.0,
+                catatan = map["catatan"] as? String ?: "",
+                id_penerima = map["id_penerima"] as? String, // Ambil dari Firestore
                 listTempo = (map["listTempo"] as? List<Map<String, Any>>)?.map { Tempo.fromMap(it) } ?: emptyList()
             )
         }
     }
 }
+
 
 
 

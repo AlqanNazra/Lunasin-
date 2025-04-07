@@ -26,7 +26,7 @@ object HutangCalculator {
 
     fun dendaTetap (denda : Double, Telat : Double) : Double
     {
-        return denda * Telat
+        return denda + Telat
     }
 
     fun denda_Cicilan(sisahutang:Double, bunga:Double, telat:Int): Double

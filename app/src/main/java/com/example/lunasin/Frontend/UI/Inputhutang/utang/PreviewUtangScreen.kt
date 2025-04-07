@@ -17,12 +17,13 @@ import com.example.lunasin.utils.formatRupiah
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
 @Composable
-fun PerhitunganPreviewHutangScreen(
+fun PreviewUtangScreen(
     viewModel: HutangViewModel,
     navController: NavController,
     docId: String,
     userId: String // Tambahkan ini agar bisa klaim hutang
 ) {
+    Log.d("PREVIEW_SCREEN", "docId: $docId, userId: $userId")
     LaunchedEffect(docId) {
         if (docId.isNotEmpty()) {
             viewModel.getHutangById(docId)

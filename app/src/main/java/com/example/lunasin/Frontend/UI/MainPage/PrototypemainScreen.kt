@@ -52,7 +52,7 @@ fun HomeScreen(navController: NavController) {
                 OptionCard(
                     title = "Piutang",
                     iconRes = R.drawable.ic_business,
-                    onClick = { navController.navigate("piutang_screen") }
+                    onClick = { navController.navigate("list_utang_screen") }
                 )
             }
         }

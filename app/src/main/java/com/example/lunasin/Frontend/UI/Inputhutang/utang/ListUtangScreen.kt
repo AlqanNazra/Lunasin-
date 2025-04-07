@@ -1,9 +1,7 @@
-package com.example.lunasin.Frontend.UI.Inputhutang
+package com.example.lunasin.Frontend.UI.Inputhutang.utang
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,25 +20,17 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.lunasin.Backend.model.Hutang
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
+fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
+    var searchId by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val hasilCari by hutangViewModel.hutangState.collectAsState()
     val hutangList by hutangViewModel.hutangList.collectAsState()
-    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
-    LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
-            Log.d("ListHutangScreen", "Memanggil ambilDataHutang untuk userId: $userId")
-            hutangViewModel.ambilDataHutang(userId)
-        } else {
-            Log.e("ListHutangScreen", "User ID tidak ditemukan")
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -55,14 +45,6 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("input_hutang_teman_screen") },
-                backgroundColor = MaterialTheme.colors.primary
-            ) {
-                Text("+", fontSize = 24.sp, color = Color.White)
-            }
-        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -70,12 +52,57 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
+            // 🔍 Search Bar
+            OutlinedTextField(
+                value = searchId,
+                onValueChange = { searchId = it },
+                label = { Text("Cari berdasarkan ID Hutang") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
+
+            Button(
+                onClick = {
+                    if (searchId.isNotEmpty()) {
+                        hutangViewModel.getHutangById(searchId)
+                        Log.d("SearchBar", "Mencari hutang dengan ID: $searchId")
+                    } else {
+                        Toast.makeText(context, "Masukkan ID Hutang", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text("Cari Hutang")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 🔁 Hasil Pencarian
+            hasilCari?.let { hutang ->
+                Text(
+                    "Hasil Pencarian:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                )
+                HutangItem(hutang = hutang, navController = navController)
+                Divider(thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
+            }
+
             if (hutangList.isEmpty()) {
                 Text("Belum ada data hutang.", modifier = Modifier.padding(16.dp))
-                Log.e("ListHutangScreen", "hutangList kosong, tidak ada data yang ditampilkan!")
             } else {
+                Text(
+                    "Hutang Saya:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                )
                 hutangList.forEach { hutang ->
-                    HutangItem(hutang, navController)
+                    HutangItem(hutang = hutang, navController = navController)
                 }
             }
         }
@@ -103,9 +130,7 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                 Text(hutang.namapinjaman, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Tanggal Tempo: ${hutang.tanggalPinjam}", fontSize = 14.sp)
-            Text("Tanggal Dibayar: ${hutang.tanggalBayar}", fontSize = 14.sp)
-            Text("Nominal: ${hutang.nominalpinjaman}", fontSize = 14.sp, color = Color.Blue)
+            Text("Nominal: ${hutang.nominalpinjaman}", fontSize = 16.sp, color = Color.Blue)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -128,11 +153,11 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {
-                    Log.d("ListHutangScreen", "Button diklik, docId: ${hutang.docId}")
+                    Log.d("ListUtangScreen", "Button diklik, docId: ${hutang.docId}")
                     if (hutang.docId.isNotEmpty()) {
-                        navController.navigate("preview_hutang/${hutang.docId}")
+                        navController.navigate("preview_utang/${hutang.docId}")
                     } else {
-                        Log.e("ListHutangScreen", "Error: docId kosong!")
+                        Log.e("ListUtangScreen", "Error: docId kosong!")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

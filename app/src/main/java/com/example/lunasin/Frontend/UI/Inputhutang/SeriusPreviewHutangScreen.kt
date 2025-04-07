@@ -72,6 +72,9 @@ fun SeriusPreviewHutangScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(text = "Total Hutang: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
+                            Text(text = "Bunga: ${hutangca.formatRupiah(hutang?.bunga ?: 0.0)}")
+                            Text(text = "Total Cicilan: ${hutangca.formatRupiah(hutang?.totalcicilan ?: 0.0)}")
+
                         }
                     }
 
