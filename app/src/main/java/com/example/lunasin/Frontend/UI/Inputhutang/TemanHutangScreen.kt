@@ -115,9 +115,16 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 isLoading = true
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
-                hutangViewModel.hitungDanSimpanHutang_Teman(
-                    namaPinjaman, pinjamanValue, tanggalPinjam, catatan
-                ) { success, docId ->
+                hutangViewModel.hitungDanSimpanHutang(
+                    hutangType = HutangViewModel.HutangType.TEMAN,
+                    namapinjaman = namaPinjaman,
+                    nominalpinjaman = pinjamanValue ?: 0.0,
+                    tanggalPinjam = tanggalPinjam,
+                    catatan = catatan,
+                    bunga = 0.0,
+                    lamaPinjam = 0,
+                )
+                { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
                         popupMessage = "Hutang berhasil disimpan! Data jatuh tempo juga dibuat."

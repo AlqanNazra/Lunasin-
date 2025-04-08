@@ -42,7 +42,7 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
     var namaPinjaman by remember { mutableStateOf("") }
     var nominalPinjaman by remember { mutableStateOf("") }
     var bunga by remember { mutableStateOf("") }
-    var periodePinjaman by remember { mutableStateOf("") }
+    var lamaPinjaman by remember { mutableStateOf("") }
     var tanggalPinjam by remember { mutableStateOf("Pilih Tanggal") }
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
     var catatan by remember { mutableStateOf("") }
@@ -98,8 +98,8 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
 
         // Input Periode Pinjaman
         OutlinedTextField(
-            value = periodePinjaman,
-            onValueChange = { periodePinjaman = it },
+            value = lamaPinjaman,
+            onValueChange = { lamaPinjaman = it },
             label = { Text("Periode Pinjaman (Bulan)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -144,7 +144,7 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
 
                 val pinjamanValue = nominalPinjaman.toDoubleOrNull()
                 val bungaValue = bunga.toDoubleOrNull()
-                val lamaPinjamValue = periodePinjaman.toIntOrNull()
+                val lamaPinjamValue = lamaPinjaman.toIntOrNull()
 
                 if (namaPinjaman.isEmpty() || pinjamanValue == null || bungaValue == null || lamaPinjamValue == null) {
                     Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()
@@ -154,7 +154,8 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
                 isLoading = true
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
-                hutangViewModel.hitungDanSimpanHutang_Perhitungan(
+                hutangViewModel.hitungDanSimpanHutang(
+                    hutangType = HutangViewModel.HutangType.PERHITUNGAN,
                     namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
@@ -218,5 +219,6 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
                 }
             )
         }
+
     }
 }

@@ -1,4 +1,4 @@
-package com.example.lunasin.Frontend.UI.Inputhutang
+package com.example.lunasin.Frontend.UI.Inputhutang.utang
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
@@ -17,11 +17,13 @@ import com.example.lunasin.utils.formatRupiah
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
 @Composable
-fun SeriusPreviewHutangScreen(
+fun PreviewUtangScreen(
     viewModel: HutangViewModel,
     navController: NavController,
-    docId: String
+    docId: String,
+    userId: String // Tambahkan ini agar bisa klaim hutang
 ) {
+    Log.d("PREVIEW_SCREEN", "docId: $docId, userId: $userId")
     LaunchedEffect(docId) {
         if (docId.isNotEmpty()) {
             viewModel.getHutangById(docId)
@@ -71,15 +73,13 @@ fun SeriusPreviewHutangScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Total Hutang: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
-                            Text(text = "Bunga: ${hutangca.formatRupiah(hutang?.bunga ?: 0.0)}")
-                            Text(text = "Total Cicilan: ${hutangca.formatRupiah(hutang?.totalcicilan ?: 0.0)}")
-
+                            Text(text = "Denda Bila Telat: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Menampilkan Catatan
                     Text(text = "Catatan:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Card(
                         shape = RoundedCornerShape(8.dp),
@@ -106,13 +106,17 @@ fun SeriusPreviewHutangScreen(
                             Text("Kembali", color = Color.White)
                         }
 
-                        Button(
-                            onClick = {
-                                navController.navigate("list_hutang_screen")
-                            },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
-                        ) {
-                            Text("Confirm", color = Color.White)
+                        // Tombol Klaim Hutang
+                        if (hutang?.id_penerima == null) {
+                            Button(onClick = {
+                                hutang?.docId?.let { hutangId ->
+                                    viewModel.klaimHutang(hutangId, userId)
+                                }
+                            }) {
+                                Text("Klaim Hutang")
+                            }
+                        } else {
+                            Text("Sudah Diklaim oleh ${hutang?.id_penerima}")
                         }
 
                         Button(

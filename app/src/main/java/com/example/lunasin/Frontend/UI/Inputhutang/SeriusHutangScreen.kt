@@ -31,7 +31,6 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
     var catatan by remember { mutableStateOf("") }
 
-
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
     var popupMessage by remember { mutableStateOf("") }
@@ -64,8 +63,10 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
 
         // Input Nominal Pinjaman
         OutlinedTextField(
-            value = nominalPinjaman,
-            onValueChange = { nominalPinjaman = it },
+            value = nominalPinjaman.toString(),
+            onValueChange = {
+                if (it.all { char -> char.isDigit() }) nominalPinjaman = it
+            },
             label = { Text("Nominal Pinjaman") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -73,8 +74,10 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
 
         // Input Bunga
         OutlinedTextField(
-            value = bunga,
-            onValueChange = { bunga = it },
+            value = bunga.toString(),
+            onValueChange = {
+                if (it.all { char -> char.isDigit() || char == '.' }) bunga = it
+            },
             label = { Text("Bunga per Bulan (%)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -82,8 +85,10 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
 
         // Input Periode Pinjaman
         OutlinedTextField(
-            value = periodePinjaman,
-            onValueChange = { periodePinjaman = it },
+            value = periodePinjaman.toString(),
+            onValueChange = {
+                if (it.all { char -> char.isDigit() }) periodePinjaman = it
+            },
             label = { Text("Periode Pinjaman (Bulan)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -115,31 +120,31 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
             modifier = Modifier.fillMaxWidth()
         )
 
-
         Spacer(modifier = Modifier.height(16.dp))
 
         // Tombol Confirm
         Button(
             onClick = {
+                val nominalValue = nominalPinjaman.toDoubleOrNull() ?: 0.0
+                val bungaValue = bunga.toDoubleOrNull() ?: 0.0
+                val periodeValue = periodePinjaman.toIntOrNull() ?: 0
+
                 if (tanggalPinjam == "Pilih Tanggal") {
                     Toast.makeText(context, "Harap pilih tanggal pinjaman!", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
-                val pinjamanValue = nominalPinjaman.toDoubleOrNull()
-                val bungaValue = bunga.toDoubleOrNull()
-                val lamaPinjamValue = periodePinjaman.toIntOrNull()
-
-                if (namaPinjaman.isEmpty() || pinjamanValue == null || bungaValue == null || lamaPinjamValue == null) {
-                    Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()
+                if (namaPinjaman.isEmpty()) {
+                    Toast.makeText(context, "Nama pinjaman tidak boleh kosong!", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 isLoading = true
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
-                hutangViewModel.hitungDanSimpanHutang_Serius(
-                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam, catatan
+                hutangViewModel.hitungDanSimpanHutang(
+                    hutangType = HutangViewModel.HutangType.SERIUS
+                    ,namaPinjaman, nominalValue, bungaValue, periodeValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
@@ -162,7 +167,6 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
             }
         }
 
-
         LaunchedEffect(navigateToPreview) {
             navigateToPreview?.let { docId ->
                 showPopup = false
@@ -171,7 +175,6 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
                 navigateToPreview = null
             }
         }
-
 
         // Dialog Loading
         if (isLoading) {
