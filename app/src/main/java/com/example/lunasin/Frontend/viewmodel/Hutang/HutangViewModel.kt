@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
 import androidx.lifecycle.viewModelScope
-
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungTotalHutang
 
 
 class HutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
@@ -28,6 +28,12 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         TEMAN,
         PERHITUNGAN
     }
+    private val _hutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
+    val hutangSayaList: StateFlow<List<Hutang>> = _hutangSayaList
+
+    private val _piutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
+    val piutangSayaList: StateFlow<List<Hutang>> = _piutangSayaList
+
 
     private val firestore = FirebaseFirestore.getInstance()
     private val _hutangState = MutableStateFlow<Hutang?>(null)
@@ -37,32 +43,32 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     private val _hutangList = MutableStateFlow<List<Hutang>>(emptyList())
     val hutangList: StateFlow<List<Hutang>> = _hutangList
 
-fun getHutangById(docId: String) {
-    viewModelScope.launch {
-        try {
-            val document = firestore.collection("hutang").document(docId).get().await()
-            if (document.exists()) {
-                val hutang = document.toObject(Hutang::class.java)
+    fun getHutangById(docId: String) {
+        viewModelScope.launch {
+            try {
+                val document = firestore.collection("hutang").document(docId).get().await()
+                if (document.exists()) {
+                    val hutang = document.toObject(Hutang::class.java)
 
-                val tempoList = (document["listTempo"] as? List<Map<String, Any>>)?.map { tempo ->
-                    Tempo(
-                        angsuranKe = (tempo["angsuranKe"] as? Long)?.toInt() ?: 0,
-                        tanggalTempo = tempo["tanggalTempo"] as? String ?: ""
-                    )
-                } ?: emptyList()
+                    val tempoList = (document["listTempo"] as? List<Map<String, Any>>)?.map { tempo ->
+                        Tempo(
+                            angsuranKe = (tempo["angsuranKe"] as? Long)?.toInt() ?: 0,
+                            tanggalTempo = tempo["tanggalTempo"] as? String ?: ""
+                        )
+                    } ?: emptyList()
 
-                val hutangDenganTempo = hutang?.copy(listTempo = tempoList)
+                    val hutangDenganTempo = hutang?.copy(listTempo = tempoList)
 
-                _hutangState.value = hutangDenganTempo
-                Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutangDenganTempo")
-            } else {
-                Log.e("Firestore", "Dokumen tidak ditemukan!")
+                    _hutangState.value = hutangDenganTempo
+                    Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutangDenganTempo")
+                } else {
+                    Log.e("Firestore", "Dokumen tidak ditemukan!")
+                }
+            } catch (e: Exception) {
+                Log.e("Firestore", "Gagal mengambil data", e)
             }
-        } catch (e: Exception) {
-            Log.e("Firestore", "Gagal mengambil data", e)
         }
     }
-}
 
     fun klaimHutang(idHutang: String, idPenerima: String) {
         val hutangRef = firestore.collection("hutang").document(idHutang)
@@ -163,7 +169,7 @@ fun getHutangById(docId: String) {
                     "tanggalBayar" to tanggalBayar,
                     "listTempo" to listTempo,
                     "catatan" to catatan,
-                    "totalcicilan" to totalcicilan
+                    "totalcicilan" to totalcicilan,
                 )
             }
 
@@ -173,7 +179,8 @@ fun getHutangById(docId: String) {
                     "namapinjaman" to namapinjaman,
                     "nominalpinjaman" to nominalpinjaman,
                     "tanggalPinjam" to tanggalPinjam,
-                    "catatan" to catatan
+                    "catatan" to catatan,
+                    "id_penerima" to ""
                 )
             }
 
@@ -240,6 +247,61 @@ fun getHutangById(docId: String) {
         }
     }
 
+    fun ambilHutangSaya(userId: String) {
+        viewModelScope.launch {
+            firestore.collection("hutang")
+                .whereEqualTo("id_penerima", userId)
+                .get()
+                .addOnSuccessListener { result ->
+                    val daftarHutang = result.documents.mapNotNull { doc ->
+                        val hutang = doc.toObject(Hutang::class.java)?.copy(docId = doc.id)
+                        hutang?.let {
+                            it.copy(
+                                totalHutang = hitungTotalHutang(
+                                    it.nominalpinjaman ?: 0.0,
+                                    it.bunga ?: 0.0,
+                                    it.lamaPinjaman ?: 0
+                                )
+                            )
+                        }
+                    }
+                    Log.d("HutangViewModel", "Daftar hutang setelah hitung: $daftarHutang")
+                    _hutangSayaList.value = daftarHutang
+                }
+                .addOnFailureListener {
+                    Log.e("HutangViewModel", "Gagal ambil hutang", it)
+                }
+        }
+    }
+
+    fun ambilPiutangSaya(userId: String) {
+        viewModelScope.launch {
+            Log.d("debughutang", "Ambil piutang untuk userId: $userId")
+            firestore.collection("hutang")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener { result ->
+                    val daftarPiutang = result.documents.mapNotNull { doc ->
+                        val hutang = doc.toObject(Hutang::class.java)?.copy(docId = doc.id)
+                        hutang?.let {
+                            it.copy(
+                                totalHutang = hitungTotalHutang(
+                                    it.nominalpinjaman ?: 0.0,
+                                    it.bunga ?: 0.0,
+                                    it.lamaPinjaman ?: 0
+                                )
+                            )
+                        }
+                    }
+                    Log.d("HutangViewModel", "Daftar piutang setelah hitung: $daftarPiutang")
+                    _piutangSayaList.value = daftarPiutang
+                }
+                .addOnFailureListener {
+                    Log.e("HutangViewModel", "Gagal ambil piutang", it)
+                }
+        }
+    }
+
+
+
 }
-
-

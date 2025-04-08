@@ -16,6 +16,7 @@ import com.example.lunasin.ui.screens.SignUpScreen
 import com.example.lunasin.viewmodel.AuthViewModel
 import com.example.lunasin.Frontend.UI.Home.*
 import com.example.lunasin.Frontend.UI.Inputhutang.utang.*
+import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -29,11 +30,9 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
         composable(Screen.Login.route) {
             LoginScreen(authViewModel, navController)
         }
+        
         composable(Screen.SignUp.route) {
             SignUpScreen(authViewModel, navController)
-        }
-        composable(Screen.Home.route) {
-            HomeScreen(authViewModel, navController)
         }
         composable(Screen.ForgotScreen.route) {
             ForgotPasswordScreen(navController, authViewModel::resetPassword)
@@ -69,7 +68,10 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
         composable("list_hutang_screen") { ListHutangScreen(hutangViewModel, navController) }
 
         composable("home_screen") {
-            HomeScreen(navController)
+            HomeScreen(navController,hutangViewModel)
+        }
+        composable(Screen.Profile.route) {
+            ProfileScreen(navController)
         }
 
         composable("list_utang_screen") {

@@ -18,7 +18,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.lunasin.R
-import com.example.lunasin.navigation.Screen
+import com.example.lunasin.Frontend.UI.navigation.Screen
 import com.example.lunasin.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions

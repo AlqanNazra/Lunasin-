@@ -65,7 +65,10 @@ data class Hutang(
                 docId = map["docId"] as? String ?: "",
                 userId = map["userId"] as? String ?: "",
                 namapinjaman = map["namapinjaman"] as? String ?: "",
-                nominalpinjaman = (map["nominalpinjaman"] as? Double) ?: 0.0,
+                nominalpinjaman = when (val value = map["nominalpinjaman"]) {
+                    is Number -> value.toDouble()
+                    else -> 0.0
+                },
                 bunga = (map["bunga"] as? Double) ?: 0.0,
                 lamaPinjaman = (map["lamaPinjaman"] as? Long)?.toInt() ?: 0,
                 totalHutang = (map["totalHutang"] as? Double) ?: 0.0,
@@ -75,14 +78,11 @@ data class Hutang(
                 totalbunga = (map["totalbunga"] as? Double) ?: 0.0,
                 catatan = map["catatan"] as? String ?: "",
                 id_penerima = map["id_penerima"] as? String, // Ambil dari Firestore
-                listTempo = (map["listTempo"] as? List<Map<String, Any>>)?.map { Tempo.fromMap(it) } ?: emptyList()
+                listTempo = (map["listTempo"] as? List<*>)?.mapNotNull {
+                    (it as? Map<String, Any>)?.let { Tempo.fromMap(it) }
+                } ?: emptyList()
+
             )
         }
     }
 }
-
-
-
-
-
-

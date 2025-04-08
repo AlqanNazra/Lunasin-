@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.firebase.storage.ktx)
     //Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
@@ -90,17 +91,17 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
 
-    implementation("androidx.compose.ui:ui:1.5.0")
-    implementation("androidx.compose.material:material:1.5.0")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.5.0")
-    implementation("androidx.activity:activity-compose:1.8.0")
-
     // kalender Update
     implementation("com.kizitonwose.calendar:compose:2.3.0")
 
-    implementation("androidx.compose.ui:ui:1.6.0") // Sesuaikan dengan versi terbaru Compose
-    implementation("androidx.compose.foundation:foundation:1.6.0")
-    implementation("androidx.compose.material:material:1.6.0")
-    implementation("androidx.compose.ui:ui-text:1.6.0")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material:material")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.ui:ui-text")
+    implementation("androidx.activity:activity-compose") // tetap boleh tanpa versi karena bom juga
+
+    implementation ("io.coil-kt:coil-compose:2.4.0")
+    implementation("com.google.accompanist:accompanist-pager:0.30.1")
+
 
 }
