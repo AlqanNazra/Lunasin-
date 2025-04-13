@@ -1,8 +1,10 @@
 package com.example.lunasin.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.util.Log
+import android.widget.Toast
 import androidx.navigation.NavController
 import com.example.lunasin.Backend.Data.login_Data.AuthRepository
 import kotlinx.coroutines.launch
@@ -10,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.example.lunasin.Frontend.UI.navigation.Screen
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.delay
 
 open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -29,25 +32,71 @@ open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
 
     fun signUp(email: String, password: String, navController: NavController) {
         viewModelScope.launch {
-            val result = authRepo.signUp(email, password)
-            _isAuthenticated.value = result != null
-            if (result != null) {
-                navController.navigate(Screen.Home.route)
+            auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        user?.sendEmailVerification()
+                            ?.addOnSuccessListener {
+                                _errorMessage.value = "Verifikasi email telah dikirim. Silakan cek inbox Anda."
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(Screen.SignUp.route) { inclusive = true }
+                                }
+                            }
+                            ?.addOnFailureListener {
+                                _errorMessage.value = "Gagal mengirim email verifikasi."
+                            }
+                    } else {
+                        _errorMessage.value = task.exception?.message
+                    }
+                }
+        }
+    }
+
+
+    fun signIn(email: String, password: String, navController: NavController) {
+        viewModelScope.launch {
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        if (user != null && user.isEmailVerified) {
+                            _isAuthenticated.value = true
+                        } else {
+                            _errorMessage.value = "Email belum diverifikasi. Silakan cek inbox Anda."
+                            auth.signOut() // logout agar user tidak tetap login
+                        }
+                    } else {
+                        _errorMessage.value = task.exception?.message
+                    }
+                }
+        }
+    }
+
+    // Di AuthViewModel.kt
+    private val _resendTimer = MutableStateFlow(0)
+    val resendTimer: StateFlow<Int> = _resendTimer
+
+    fun startResendTimer(duration: Int = 60) {
+        viewModelScope.launch {
+            for (i in duration downTo 0) {
+                _resendTimer.value = i
+                delay(1000)
             }
         }
     }
 
-    fun signIn(email: String, password: String, navController: NavController) {
-        viewModelScope.launch {
-            val result = authRepo.signIn(email, password)
-            if (result?.user != null) {
-                _isAuthenticated.value = true
-                Log.d("AuthViewModel", "Login sukses: userId = ${result.user?.uid}")
-                navController.navigate(Screen.Home.route)
-            } else {
-                _errorMessage.value = "Login gagal! Periksa kembali email dan password."
+    fun resendVerificationEmail(context: Context) {
+        val user = auth.currentUser
+        user?.sendEmailVerification()
+            ?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Toast.makeText(context, "Email verifikasi dikirim ulang.", Toast.LENGTH_SHORT).show()
+                    startResendTimer()
+                } else {
+                    setError("Gagal mengirim ulang email verifikasi")
+                }
             }
-        }
     }
 
 
@@ -89,6 +138,10 @@ open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
 
     fun setError(s: String) {
         _errorMessage.value = s
+    }
+
+    fun clearErrorMessage() {
+        _errorMessage.value = null
     }
 
 }
