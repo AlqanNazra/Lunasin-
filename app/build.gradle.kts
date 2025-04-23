@@ -43,6 +43,7 @@ android {
 
 dependencies {
     implementation(libs.firebase.storage.ktx)
+
     //Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)

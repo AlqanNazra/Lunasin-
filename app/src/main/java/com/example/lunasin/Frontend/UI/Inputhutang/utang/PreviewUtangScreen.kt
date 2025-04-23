@@ -1,29 +1,36 @@
 package com.example.lunasin.Frontend.UI.Inputhutang.utang
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.lunasin.theme.Black
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.utils.formatRupiah
-import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PreviewUtangScreen(
     viewModel: HutangViewModel,
     navController: NavController,
     docId: String,
-    userId: String // Tambahkan ini agar bisa klaim hutang
+    userId: String
 ) {
     Log.d("PREVIEW_SCREEN", "docId: $docId, userId: $userId")
+
+    // Ambil data hutang berdasarkan docId (logika awal)
     LaunchedEffect(docId) {
         if (docId.isNotEmpty()) {
             viewModel.getHutangById(docId)
@@ -31,113 +38,308 @@ fun PreviewUtangScreen(
     }
 
     val hutang by viewModel.hutangState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var isClaiming by remember { mutableStateOf(false) }
+    var claimSuccess by remember { mutableStateOf<String?>(null) } // State untuk melacak keberhasilan klaim
+
+    // LaunchedEffect untuk menampilkan snackbar dan refresh data setelah klaim
+    LaunchedEffect(claimSuccess) {
+        claimSuccess?.let { hutangId ->
+            snackbarHostState.showSnackbar(
+                message = "Hutang berhasil diklaim!",
+                actionLabel = "OK",
+                duration = SnackbarDuration.Short
+            )
+            viewModel.getHutangById(hutangId) // Refresh data
+        }
+    }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    modifier = Modifier.padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(8.dp)
+                )
+            }
+        },
         topBar = {
             TopAppBar(
-                title = { Text("Preview Hutang") },
-                backgroundColor = Color.Blue,
-                contentColor = Color.White
+                title = {
+                    Text(
+                        text = "Detail Hutang",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Kembali",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (hutang == null) {
-                CircularProgressIndicator()
-            } else {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Nama: ${hutang?.namapinjaman ?: "Data Kosong"}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp)
                     )
-                    Text(text = "Nominal: ${hutang?.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00"}")
-                    Text(text = "Periode: ${hutang?.lamaPinjaman} Bulan")
-                    Text(text = "Dari: ${hutang?.tanggalPinjam} - ${hutang?.tanggalBayar}")
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
+                }
+            } else {
+                // Bagian Informasi Utama
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Denda Bila Telat: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
-                        }
+                        Text(
+                            text = "Informasi Hutang",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Divider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        InfoRow(label = "Nama Pemberi Pinjaman", value = hutang?.namapinjaman ?: "Data Kosong")
+                        InfoRow(
+                            label = "Nominal Hutang",
+                            value = hutang?.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00"
+                        )
+                        InfoRow(label = "Periode", value = "${hutang?.lamaPinjaman ?: 0} Bulan")
+                        InfoRow(
+                            label = "Tanggal",
+                            value = "${hutang?.tanggalPinjam ?: "-"} hingga ${hutang?.tanggalBayar ?: "-"}"
+                        )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                // Bagian Denda
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Denda Jika Telat",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Divider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Text(
+                            text = HutangCalculator.formatRupiah(hutang?.totalHutang ?: 0.0),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
 
-                    // Menampilkan Catatan
-                    Text(text = "Catatan:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = 2.dp,
+                // Bagian Catatan
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Catatan",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = hutang?.catatan ?: "Tidak ada catatan",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Black.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                // Bagian Tombol Aksi
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Tombol Kembali
+                    OutlinedButton(
+                        onClick = { navController.popBackStack() },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     ) {
-                        Box(modifier = Modifier.padding(16.dp)) {
-                            Text(text = hutang?.catatan ?: "Tidak ada catatan")
-                        }
+                        Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Button(
-                            onClick = { navController.popBackStack() },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
-                        ) {
-                            Text("Kembali", color = Color.White)
-                        }
-
-                        // Tombol Klaim Hutang
-                        if (hutang != null && hutang?.id_penerima.isNullOrEmpty() && userId != hutang?.userId) {
-                            Button(onClick = {
-                                hutang?.docId?.let { hutangId ->
-                                    viewModel.klaimHutang(hutangId, userId)
-                                }
-                            }) {
-                                Text("Klaim Hutang")
+                    // Validasi untuk tombol Klaim Hutang atau Bayar
+                    when {
+                        // Jika userId sama dengan id_penerima, tampilkan tombol Bayar
+                        userId == hutang?.id_penerima -> {
+                            Button(
+                                onClick = { /* Dummy button untuk Bayar */ },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
-                        } else if (userId == hutang?.userId) {
-                            Text("Kamu tidak bisa klaim hutang yang kamu buat sendiri.", color = Color.Gray)
                         }
-
-                        else {
-                            Text("Sudah Diklaim oleh ${hutang?.id_penerima}")
-                        }
-
-                        Button(
-                            onClick = {
-                                if (docId.isNotEmpty()) {
-                                    navController.navigate("tanggalTempo/$docId")
+                        // Jika id_penerima null, tampilkan tombol Klaim Hutang
+                        hutang?.id_penerima == null -> {
+                            Button(
+                                onClick = {
+                                    isClaiming = true
+                                    hutang?.docId?.let { hutangId ->
+                                        viewModel.klaimHutang(hutangId, userId)
+                                        isClaiming = false
+                                        claimSuccess = hutangId // Memicu LaunchedEffect
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp),
+                                enabled = !isClaiming,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                if (isClaiming) {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 } else {
-                                    Log.e("LihatJatuhTempo", "docId NULL atau kosong")
+                                    Text("Klaim Hutang", style = MaterialTheme.typography.labelLarge)
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue)
-                        ) {
-                            Text("Lihat Jatuh Tempo", color = Color.White)
+                            }
+                        }
+                        // Jika id_penerima ada dan bukan userId, tampilkan pesan sudah diklaim
+                        else -> {
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                )
+                            ) {
+                                Text(
+                                    text = "Sudah Diklaim oleh ${hutang?.id_penerima}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
                         }
                     }
                 }
+
+                // Tombol Lihat Jatuh Tempo
+                Button(
+                    onClick = {
+                        if (docId.isNotEmpty()) {
+                            navController.navigate("tanggalTempo/$docId")
+                        } else {
+                            Log.e("LihatJatuhTempo", "docId NULL atau kosong")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    )
+                ) {
+                    Text("Lihat Jatuh Tempo", style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
+    }
+}
+
+@Composable
+fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Black.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

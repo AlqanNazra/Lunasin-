@@ -1,7 +1,6 @@
 package com.example.lunasin.Frontend.UI.Inputhutang
 
 import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -9,18 +8,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
-import com.example.lunasin.utils.QrCodeDialogButton
 import com.example.lunasin.utils.formatRupiah
-import com.example.lunasin.utils.generateQRCode
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
-
 
 @Composable
 fun PerhitunganPreviewHutangScreen(
@@ -132,17 +126,11 @@ fun PerhitunganPreviewHutangScreen(
                             Text("Lihat Jatuh Tempo", color = Color.White)
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    hutang?.let { data ->
-                        QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
-                    }
                 }
             }
         }
     }
-
 }
 
-
-
+class PilihHutangScreen {
+}
