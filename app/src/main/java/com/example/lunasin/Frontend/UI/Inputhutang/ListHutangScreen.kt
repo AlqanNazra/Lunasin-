@@ -30,13 +30,13 @@ import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
-    val hutangList by hutangViewModel.hutangList.collectAsState()
+    val piutangSayaList by hutangViewModel.piutangSayaList.collectAsState() // Ubah ke piutangSayaList
     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            Log.d("ListHutangScreen", "Memanggil ambilDataHutang untuk userId: $userId")
-            hutangViewModel.ambilDataHutang(userId)
+            Log.d("ListHutangScreen", "Memanggil ambilPiutangSaya untuk userId: $userId")
+            hutangViewModel.ambilPiutangSaya(userId) // Ganti ke ambilPiutangSaya
         } else {
             Log.e("ListHutangScreen", "User ID tidak ditemukan")
         }
@@ -45,7 +45,7 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Laporan Hutang") },
+                title = { Text("Laporan Piutang") }, // Ubah judul agar sesuai (opsional)
                 backgroundColor = Color.White,
                 elevation = 4.dp,
                 navigationIcon = {
@@ -70,11 +70,11 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            if (hutangList.isEmpty()) {
-                Text("Belum ada data hutang.", modifier = Modifier.padding(16.dp))
-                Log.e("ListHutangScreen", "hutangList kosong, tidak ada data yang ditampilkan!")
+            if (piutangSayaList.isEmpty()) {
+                Text("Belum ada data piutang.", modifier = Modifier.padding(16.dp))
+                Log.e("ListHutangScreen", "piutangSayaList kosong, tidak ada data yang ditampilkan!")
             } else {
-                hutangList.forEach { hutang ->
+                piutangSayaList.forEach { hutang ->
                     HutangItem(hutang, navController, hutangViewModel)
                 }
             }
@@ -90,16 +90,16 @@ fun HutangItem(hutang: Hutang, navController: NavHostController, hutangViewModel
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
-        elevation = 4.dp
+        elevation = 3.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Pemberi Hutang", fontWeight = FontWeight.Bold)
+                Text("Penerima Hutang", fontWeight = FontWeight.Bold) // Ubah label agar sesuai (opsional)
                 Text(hutang.namapinjaman, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -147,7 +147,7 @@ fun HutangItem(hutang: Hutang, navController: NavHostController, hutangViewModel
                 onClick = {
                     val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
                     hutangViewModel.hapusHutang(hutang.docId) {
-                        hutangViewModel.ambilDataHutang(userId)
+                        hutangViewModel.ambilPiutangSaya(userId) // Ganti ke ambilPiutangSaya
                     }
                     Toast.makeText(context, "Hutang berhasil dihapus", Toast.LENGTH_SHORT).show()
                 },

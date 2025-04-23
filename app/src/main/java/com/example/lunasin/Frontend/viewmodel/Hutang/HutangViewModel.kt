@@ -70,6 +70,11 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         }
     }
 
+    fun clearHutangState() {
+        _hutangState.value = null
+        Log.d("HutangViewModel", "Hasil pencarian telah dihapus")
+    }
+
     fun klaimHutang(idHutang: String, idPenerima: String) {
         val hutangRef = firestore.collection("hutang").document(idHutang)
 
@@ -82,10 +87,28 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             }
     }
 
-    fun ambilDataHutang(userId: String) {
+    fun ambilDataPiutang(userId: String) {
         viewModelScope.launch {
             firestore.collection("hutang")
                 .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener { result ->
+                    val daftarHutang = result.documents.mapNotNull { doc ->
+                        doc.toObject(Hutang::class.java)?.copy(docId = doc.id) // Pastikan docId diambil
+                    }
+                    _hutangList.value = daftarHutang
+                    Log.d("HutangViewModel", "Data piutang berhasil diambil: $daftarHutang")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("HutangViewModel", "Gagal mengambil data piutang", e)
+                }
+        }
+    }
+
+    fun ambilDataHutang(userId: String) {
+        viewModelScope.launch {
+            firestore.collection("hutang")
+                .whereEqualTo("id_penerima", userId)
                 .get()
                 .addOnSuccessListener { result ->
                     val daftarHutang = result.documents.mapNotNull { doc ->
@@ -301,7 +324,4 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 }
         }
     }
-
-
-
 }

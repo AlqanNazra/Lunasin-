@@ -56,7 +56,6 @@ fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            hutangViewModel.ambilDataHutang(userId)
             hutangViewModel.ambilHutangSaya(userId)
             hutangViewModel.ambilPiutangSaya(userId)
         }

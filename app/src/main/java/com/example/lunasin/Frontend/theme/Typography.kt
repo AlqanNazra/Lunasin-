@@ -55,7 +55,7 @@ val LunasinTypography = Typography(
     headlineSmall = TextStyle(
         fontFamily = PoppinsFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
+        fontSize = 26.sp,
         lineHeight = 32.sp,
         letterSpacing = 0.sp
     ),
