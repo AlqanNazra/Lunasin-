@@ -98,11 +98,11 @@ fun TemanPreviewHutangScreen(
                         ) {
                             Text("Confirm", color = Color.White)
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                        hutang?.let { data ->
-                            QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
-                        }
+                    hutang?.let { data ->
+                        QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
                     }
                 }
             }

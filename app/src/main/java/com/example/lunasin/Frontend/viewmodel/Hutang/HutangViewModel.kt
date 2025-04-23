@@ -193,6 +193,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                     "listTempo" to listTempo,
                     "catatan" to catatan,
                     "totalcicilan" to totalcicilan,
+                    "id_penerima" to ""
                 )
             }
 
@@ -208,17 +209,16 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             }
 
             HutangViewModel.HutangType.PERHITUNGAN -> {
-                val totalHutang = HutangCalculator.dendaTetap(nominalpinjaman, bunga)
-                val listTempo = createTempoList(lamaPinjam, calendar, sdf)
+                val denda = HutangCalculator.dendaTetap(nominalpinjaman, bunga)
 
                 mapOf(
                     "userId" to userId,
                     "namapinjaman" to namapinjaman,
                     "nominalpinjaman" to nominalpinjaman,
-                    "totalHutang" to totalHutang,
+                    "totaldenda" to denda,
                     "tanggalPinjam" to tanggalPinjam,
-                    "listTempo" to listTempo,
-                    "catatan" to catatan
+                    "catatan" to catatan,
+                    "id_penerima" to ""
                 )
             }
         }

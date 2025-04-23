@@ -20,11 +20,14 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import android.content.Intent
+import androidx.activity.result.contract.ActivityResultContracts
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.ui.draw.clip
@@ -33,8 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.lunasin.Backend.model.Hutang
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
-import com.example.lunasin.theme.Black
 import kotlinx.coroutines.launch
+
+val Black = Color(0xFF000000)
 
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
@@ -216,32 +220,13 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
 
                 // 🔁 Hasil Pencarian
                 hasilCari?.let { hutang ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Hasil Pencarian",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-                        IconButton(
-                            onClick = {
-                                hutangViewModel.clearHutangState()
-                            },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Hapus Hasil Pencarian",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
+                    Text(
+                        "Hasil Pencarian",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                     HutangItem(hutang = hutang, navController = navController)
                     Divider(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),

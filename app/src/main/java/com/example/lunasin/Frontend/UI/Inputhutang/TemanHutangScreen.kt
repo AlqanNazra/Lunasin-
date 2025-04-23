@@ -172,6 +172,13 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 confirmButton = { }
             )
         }
+        Button(
+            onClick = { navController.popBackStack() },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
+        ) {
+            Text("Kembali", color = Color.White)
+        }
+
 
         // Popup Notifikasi
         if (showPopup) {
