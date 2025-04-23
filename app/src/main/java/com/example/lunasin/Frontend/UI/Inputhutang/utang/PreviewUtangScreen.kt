@@ -107,7 +107,7 @@ fun PreviewUtangScreen(
                         }
 
                         // Tombol Klaim Hutang
-                        if (hutang?.id_penerima == null) {
+                        if (hutang?.id_penerima.isNullOrEmpty()) {
                             Button(onClick = {
                                 hutang?.docId?.let { hutangId ->
                                     viewModel.klaimHutang(hutangId, userId)

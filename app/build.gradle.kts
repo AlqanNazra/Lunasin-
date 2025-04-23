@@ -103,5 +103,11 @@ dependencies {
     implementation ("io.coil-kt:coil-compose:2.4.0")
     implementation("com.google.accompanist:accompanist-pager:0.30.1")
 
+    //Qr code
+    implementation ("com.google.zxing:core:3.5.1")
+    implementation ("androidx.core:core-ktx:1.10.1")
+    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
+
+
 
 }
