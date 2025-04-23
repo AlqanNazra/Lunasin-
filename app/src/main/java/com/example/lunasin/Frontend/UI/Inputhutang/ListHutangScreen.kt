@@ -56,11 +56,23 @@ fun ListHutangScreen(hutangViewModel: HutangViewModel, navController: NavHostCon
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("input_hutang_teman_screen") },
-                backgroundColor = MaterialTheme.colors.primary
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("+", fontSize = 24.sp, color = Color.White)
+                Button(
+                    onClick = { navController.popBackStack() },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
+                ) {
+                    Text("Kembali", color = Color.White)
+                }
+
+                FloatingActionButton(
+                    onClick = { navController.navigate("input_hutang_teman_screen") },
+                    backgroundColor = MaterialTheme.colors.primary
+                ) {
+                    Text("+", fontSize = 24.sp, color = Color.White)
+                }
             }
         }
     ) { paddingValues ->

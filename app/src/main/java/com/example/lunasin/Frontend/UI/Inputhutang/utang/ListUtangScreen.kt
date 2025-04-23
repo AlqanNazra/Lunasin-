@@ -131,6 +131,13 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
 
         }
     }
+    Button(
+        onClick = { navController.popBackStack() },
+        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
+    ) {
+        Text("Kembali", color = Color.White)
+    }
+
 
 }
 

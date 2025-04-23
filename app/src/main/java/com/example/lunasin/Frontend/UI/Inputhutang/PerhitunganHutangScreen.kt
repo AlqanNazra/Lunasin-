@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -205,6 +206,13 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
                 confirmButton = { }
             )
         }
+        Button(
+            onClick = { navController.popBackStack() },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
+        ) {
+            Text("Kembali", color = Color.White)
+        }
+
 
         // Popup Notifikasi
         if (showPopup) {

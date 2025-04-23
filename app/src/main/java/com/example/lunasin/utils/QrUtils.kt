@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.lunasin.utils.generateQRCode
@@ -29,8 +30,9 @@ fun generateQRCode(content: String, size: Int = 512): Bitmap {
     return bitmap
 }
 
+@Preview(showBackground = true)
 @Composable
-fun QrCodeDialogButton(data: String) {
+fun QrCodeDialogButton(data: String = "lunasin://previewHutang?docId=preview123") {
     var showDialog by remember { mutableStateOf(false) }
 
     Button(onClick = { showDialog = true }) {
@@ -42,21 +44,28 @@ fun QrCodeDialogButton(data: String) {
             onDismissRequest = { showDialog = false },
             title = { Text("QR Code") },
             text = {
-                val qrBitmap = remember(data) {
-                    generateQRCode(data)
-                }
-                Column(
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Image(
-                        bitmap = qrBitmap.asImageBitmap(),
-                        contentDescription = "Generated QR Code",
+                    // ✅ Gunakan scope maxWidth di sini
+                    val qrSize = if (this.maxWidth < 300.dp) this.maxWidth - 32.dp else 250.dp
+
+                    val qrBitmap = remember(data) {
+                        generateQRCode(data)
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .size(200.dp)
+                            .fillMaxWidth()
                             .padding(8.dp)
-                    )
-                    Text("Scan untuk melihat detail hutang.")
+                    ) {
+                        Image(
+                            bitmap = qrBitmap.asImageBitmap(),
+                            contentDescription = "",
+                            modifier = Modifier.size(qrSize)
+                        )
+                    }
                 }
             },
             confirmButton = {

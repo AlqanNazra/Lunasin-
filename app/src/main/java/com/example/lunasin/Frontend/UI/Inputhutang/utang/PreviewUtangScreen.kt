@@ -107,7 +107,7 @@ fun PreviewUtangScreen(
                         }
 
                         // Tombol Klaim Hutang
-                        if (hutang?.id_penerima.isNullOrEmpty()) {
+                        if (hutang != null && hutang?.id_penerima.isNullOrEmpty() && userId != hutang?.userId) {
                             Button(onClick = {
                                 hutang?.docId?.let { hutangId ->
                                     viewModel.klaimHutang(hutangId, userId)
@@ -115,7 +115,11 @@ fun PreviewUtangScreen(
                             }) {
                                 Text("Klaim Hutang")
                             }
-                        } else {
+                        } else if (userId == hutang?.userId) {
+                            Text("Kamu tidak bisa klaim hutang yang kamu buat sendiri.", color = Color.Gray)
+                        }
+
+                        else {
                             Text("Sudah Diklaim oleh ${hutang?.id_penerima}")
                         }
 
