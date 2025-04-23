@@ -20,14 +20,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import android.content.Intent
-import androidx.activity.result.contract.ActivityResultContracts
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.ui.draw.clip
@@ -36,9 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.lunasin.Backend.model.Hutang
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
+import com.example.lunasin.theme.Black
 import kotlinx.coroutines.launch
-
-val Black = Color(0xFF000000)
 
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {

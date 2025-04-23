@@ -65,7 +65,7 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
         composable("input_hutang_teman_screen") {
             PilihHutangScreen(navController)
         }
-        composable("list_hutang_screen") { ListHutangScreen(hutangViewModel, navController) }
+        composable("list_hutang_screen") { ListPiutangScreen(hutangViewModel, navController) }
 
         composable("home_screen") {
             HomeScreen(navController,hutangViewModel)

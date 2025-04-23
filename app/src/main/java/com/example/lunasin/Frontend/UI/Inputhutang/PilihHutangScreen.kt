@@ -3,82 +3,122 @@ package com.example.lunasin.Frontend.UI.Inputhutang
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Money
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.lunasin.R
+import com.example.lunasin.theme.Black
 
 @Composable
 fun PilihHutangScreen(navController: NavController) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Tambah Utang") },
-                backgroundColor = Color.White,
-                contentColor = Color.Black,
-                elevation = 0.dp
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background // Menggunakan background dari tema (Grey99)
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Text(
-                text = "Masukkan Pilihan Hutang",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF009688) // Warna hijau
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Pilihan Hutang
-            PilihanHutangItem(
-                title = "Hutang Teman",
-                description = "Hutang Biasa",
-                backgroundColor = Color(0xFF00C853), // Hijau terang
-                iconRes = R.drawable.ic_friend, // Ganti dengan ikon yang sesuai
-                onClick = { navController.navigate("teman_hutang_screen") }
-            )
-
-            PilihanHutangItem(
-                title = "Hutang Perhitungan",
-                description = "Hutang dengan tambahan denda telat bayar",
-                backgroundColor = Color(0xFFFF5252), // Merah terang
-                iconRes = R.drawable.ic_calculator, // Ganti dengan ikon yang sesuai
-                onClick = { navController.navigate("perhitungan_hutang_screen") }
-            )
-
-            PilihanHutangItem(
-                title = "Hutang Serius",
-                description = "Hutang dengan tambahan Bunga dan periode",
-                backgroundColor = Color(0xFF2979FF), // Biru terang
-                iconRes = R.drawable.ic_business, // Ganti dengan ikon yang sesuai
-                onClick = { navController.navigate("input_hutang_screen") }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Tombol Kembali
-            Button(
-                onClick = { navController.popBackStack() },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
-                modifier = Modifier.fillMaxWidth()
+            // Header dengan background putih dan garis tipis
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
-                Text("Kembali", color = Color.White)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { navController.navigate("home_screen") }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Kembali",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                Divider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                // Judul
+                Text(
+                    text = "Tambah Hutang",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Pilih jenis hutang yang ingin Anda tambahkan",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Black.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Daftar Pilihan Hutang
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listOf(
+                        Triple("Hutang Teman", "Hutang Biasa", "teman_hutang_screen") to Icons.Default.Person,
+                        Triple("Hutang Perhitungan", "Hutang dengan tambahan denda telat bayar", "perhitungan_hutang_screen") to Icons.Default.Calculate,
+                        Triple("Hutang Serius", "Hutang dengan tambahan bunga dan periode", "input_hutang_screen") to Icons.Default.Money
+                    )) { (data, icon) ->
+                        val (title, description, route) = data
+                        PilihanHutangItem(
+                            title = title,
+                            description = description,
+                            icon = icon,
+                            onClick = { navController.navigate(route) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tombol Kembali
+                TextButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                ) {
+                    Text(
+                        text = "Kembali",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -88,36 +128,53 @@ fun PilihHutangScreen(navController: NavController) {
 fun PilihanHutangItem(
     title: String,
     description: String,
-    backgroundColor: Color,
-    iconRes: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
-        elevation = 4.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .padding(horizontal = 8.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Row(
             modifier = Modifier
-                .background(backgroundColor)
-                .padding(16.dp)
+                .padding(12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(id = iconRes),
-                contentDescription = title,
-                tint = Color.White,
-                modifier = Modifier.size(48.dp)
-            )
+            // Ikon dekoratif di sisi kiri
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column {
-                Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Text(text = description, fontSize = 14.sp, color = Color.White)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                    color = Black.copy(alpha = 0.7f)
+                )
             }
         }
     }
