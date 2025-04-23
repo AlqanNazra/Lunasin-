@@ -1,7 +1,9 @@
 package com.example.lunasin.Frontend.UI.Inputhutang.utang
 
+import android.content.Intent
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -22,8 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.lunasin.Backend.model.Hutang
+import com.example.lunasin.Frontend.UI.Inputhutang.Qrcode.QrScannerActivity
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.example.lunasin.utils.generateQRCode
 
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
@@ -61,7 +66,11 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     .fillMaxWidth()
                     .padding(16.dp)
             )
-
+            Button(onClick = {
+                context.startActivity(Intent(context, QrScannerActivity::class.java))
+            }) {
+                Text("Scan QR Hutang")
+            }
             Button(
                 onClick = {
                     if (searchId.isNotEmpty()) {
@@ -90,7 +99,21 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 )
                 HutangItem(hutang = hutang, navController = navController)
                 Divider(thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
+
+                val qrBitmap = remember(hutang.docId) {
+                    generateQRCode("lunasin://previewHutang?docId=${hutang.docId}")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Scan QR untuk klaim hutang:", fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp))
+                Image(
+                    bitmap = qrBitmap.asImageBitmap(),
+                    contentDescription = "QR Hutang",
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .size(200.dp)
+                )
             }
+
 
             if (hutangList.isEmpty()) {
                 Text("Belum ada data hutang.", modifier = Modifier.padding(16.dp))
@@ -105,9 +128,12 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     HutangItem(hutang = hutang, navController = navController)
                 }
             }
+
         }
     }
+
 }
+
 
 @Composable
 fun HutangItem(hutang: Hutang, navController: NavHostController) {

@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
+import com.example.lunasin.utils.QrCodeDialogButton
 import com.example.lunasin.utils.formatRupiah
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
@@ -96,6 +97,11 @@ fun TemanPreviewHutangScreen(
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
                         ) {
                             Text("Confirm", color = Color.White)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        hutang?.let { data ->
+                            QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
                         }
                     }
                 }
