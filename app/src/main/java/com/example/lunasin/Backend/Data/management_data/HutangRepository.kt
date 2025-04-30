@@ -2,7 +2,7 @@ package com.example.lunasin.Backend.Data.management_data
 
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import com.example.lunasin.Backend.model.Hutang
+import com.example.lunasin.Backend.Model.Hutang
 
 class HutangRepository(private val firestore: FirebaseFirestore) {
 

@@ -3,7 +3,7 @@ package com.example.lunasin.Backend.Service.management_BE
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import com.example.lunasin.Backend.model.Hutang
+import com.example.lunasin.Backend.Model.Hutang
 
 class FirestoreService {
     private val firestore = FirebaseFirestore.getInstance()

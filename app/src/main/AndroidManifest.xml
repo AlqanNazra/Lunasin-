@@ -18,7 +18,7 @@
         tools:ignore="HardcodedDebugMode">
 
         <!-- Activity untuk Google Sign-In -->
-        <activity android:name=".Frontend.UI.Inputhutang.Qrcode.QrScannerActivity" />
+        <activity android:name=".Frontend.UI.Hutang.Qrcode.QrScannerActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

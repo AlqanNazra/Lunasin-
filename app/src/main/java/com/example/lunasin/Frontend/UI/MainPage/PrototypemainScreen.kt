@@ -1,12 +1,10 @@
 package com.example.lunasin.Frontend.UI.Home
 
-
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,29 +25,33 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.lunasin.Backend.model.Hutang
-import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
+import com.example.lunasin.Backend.Model.Hutang
+import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
+import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModel
 import com.example.lunasin.R
 import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
 
+
 @Composable
-fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
+fun HomeScreen(
+    navController: NavController,
+    hutangViewModel: HutangViewModel,
+    piutangViewModel: PiutangViewModel // Tambahkan parameter untuk PiutangViewModel
+) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
     val user = FirebaseAuth.getInstance().currentUser // Ambil user untuk displayName
     val hutangSaya by hutangViewModel.hutangSayaList.collectAsState()
-    val piutangSaya by hutangViewModel.piutangSayaList.collectAsState()
+    val piutangSaya by piutangViewModel.piutangSayaList.collectAsState() // Gunakan instance piutangViewModel
 
     val totalHutang = hutangSaya.sumOf { it.totalHutang ?: 0.0 }
     val totalPiutang = piutangSaya.sumOf { it.totalHutang ?: 0.0 }
@@ -57,7 +59,7 @@ fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             hutangViewModel.ambilHutangSaya(userId)
-            hutangViewModel.ambilPiutangSaya(userId)
+            piutangViewModel.ambilPiutangSaya(userId) // Gunakan instance piutangViewModel
         }
     }
 
@@ -138,7 +140,7 @@ fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
 
                     // Hutang Teman Saya (Orang lain berhutang ke saya)
                     Text(
-                        "Hutang Teman Saya",
+                        "Piutang Saya",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     )
                     if (piutangSaya.isEmpty()) {
@@ -316,7 +318,7 @@ fun HutangItemMini(hutang: Hutang) {
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "Total Hutang: ${hutang.totalHutang?.let { String.format("%,.0f", it) } ?: "0"}",
+                text = "Total Hutang: ${hutang.nominalpinjaman?.let { String.format("%,.0f", it) } ?: "0"}",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF3F51B5))
             )
             Text(
