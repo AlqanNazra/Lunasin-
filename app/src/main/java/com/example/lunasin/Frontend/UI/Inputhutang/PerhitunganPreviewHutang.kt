@@ -116,14 +116,14 @@ fun PerhitunganPreviewHutangScreen(
                         Button(
                             onClick = {
                                 if (docId.isNotEmpty()) {
-                                    navController.navigate("tanggalTempo/$docId")
+                                    navController.navigate("tanggalBayar/$docId")
                                 } else {
-                                    Log.e("LihatJatuhTempo", "docId NULL atau kosong")
+                                    Log.e("LihatBayar", "docId NULL atau kosong")
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue)
                         ) {
-                            Text("Lihat Jatuh Tempo", color = Color.White)
+                            Text("Lihat Waktu Bayar", color = Color.White)
                         }
                     }
                 }

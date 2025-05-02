@@ -207,7 +207,7 @@ fun PreviewUtangScreen(
                     }
                 }
 
-                // Bagian Tombol Aksi
+// Bagian Tombol Aksi
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -231,7 +231,7 @@ fun PreviewUtangScreen(
                     // Validasi untuk tombol Klaim Hutang atau Bayar
                     when {
                         // Jika userId sama dengan id_penerima, tampilkan tombol Bayar
-                        userId == hutang?.id_penerima -> {
+                        userId == hutang?.id_penerima && !hutang?.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = { /* Dummy button untuk Bayar */ },
                                 modifier = Modifier
@@ -246,8 +246,8 @@ fun PreviewUtangScreen(
                                 Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        // Jika id_penerima null, tampilkan tombol Klaim Hutang
-                        hutang?.id_penerima == null -> {
+                        // Jika id_penerima null atau kosong, tampilkan tombol Klaim Hutang
+                        hutang?.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = {
                                     isClaiming = true
@@ -277,7 +277,7 @@ fun PreviewUtangScreen(
                                 }
                             }
                         }
-                        // Jika id_penerima ada dan bukan userId, tampilkan pesan sudah diklaim
+                        // Jika id_penerima ada (tidak null dan tidak kosong), tampilkan pesan sudah diklaim
                         else -> {
                             Card(
                                 modifier = Modifier

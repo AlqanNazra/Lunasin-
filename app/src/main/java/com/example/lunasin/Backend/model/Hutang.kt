@@ -33,6 +33,7 @@ data class Hutang(
     val tanggalPinjam: String = "",
     val catatan: String = "",
     var id_penerima: String? = null, // null jika belum diklaim
+    val status: Boolean = false,
     //Model untuk perhitungan hutang
     val totalHutang: Double = 0.0,
     val totalDenda: Double = 0.0,
@@ -54,6 +55,7 @@ data class Hutang(
             "tanggalPinjam" to tanggalPinjam,
             "catatan" to catatan,
             "id_penerima" to id_penerima,
+            "status" to status,
             // Model Perhitungan Hutang
             "totalHutang" to totalHutang,
             "totalDenda" to totalDenda,
@@ -75,6 +77,7 @@ data class Hutang(
                 docId = map["docId"] as? String ?: "",
                 userId = map["userId"] as? String ?: "",
                 namapinjaman = map["namapinjaman"] as? String ?: "",
+                status = map["status"] as? Boolean ?: false,
                 nominalpinjaman = when (val value = map["nominalpinjaman"]) {
                     is Number -> value.toDouble()
                     else -> 0.0

@@ -18,6 +18,9 @@ import com.example.lunasin.Frontend.UI.Home.*
 import com.example.lunasin.Frontend.UI.Inputhutang.utang.*
 import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
 import com.google.firebase.auth.FirebaseAuth
+import com.example.lunasin.Frontend.UI.Inputhutang.TanggalBayarScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.TanggalTempoScreen
+
 
 @Composable
 fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, startDestination: String) {
@@ -61,6 +64,10 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
         composable("tanggalTempo/{docId}") { backStackEntry ->
             val docId = backStackEntry.arguments?.getString("docId") ?: ""
             TanggalTempoScreen(hutangViewModel, navController, docId)
+        }
+        composable("tanggalBayar/{docId}") { backStackEntry ->
+            val docId = backStackEntry.arguments?.getString("docId") ?: ""
+            TanggalBayarScreen(hutangViewModel, navController, docId)
         }
         composable("input_hutang_teman_screen") {
             PilihHutangScreen(navController)

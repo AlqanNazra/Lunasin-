@@ -42,7 +42,7 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
     val context = LocalContext.current
     var namaPinjaman by remember { mutableStateOf("") }
     var nominalPinjaman by remember { mutableStateOf("") }
-    var bunga by remember { mutableStateOf("") }
+    var denda by remember { mutableStateOf("") }
     var lamaPinjaman by remember { mutableStateOf("") }
     var tanggalPinjam by remember { mutableStateOf("Pilih Tanggal") }
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
@@ -88,20 +88,20 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Input Bunga
+        // Input Denda
         OutlinedTextField(
-            value = bunga,
-            onValueChange = { bunga = it },
+            value = denda,
+            onValueChange = { denda = it },
             label = { Text("Denda Bila Telat Bayar") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Input Periode Pinjaman
+        // Target Bayar
         OutlinedTextField(
             value = lamaPinjaman,
             onValueChange = { lamaPinjaman = it },
-            label = { Text("Periode Pinjaman (Bulan)") },
+            label = { Text("lama Pinjam (bulan)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
@@ -111,7 +111,7 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
         OutlinedTextField(
             value = tanggalPinjam,
             onValueChange = {},
-            label = { Text("Tanggal Mulai Pinjaman") },
+            label = { Text("Tanggal BayarF") },
             modifier = Modifier.fillMaxWidth(),
             readOnly = true,
             trailingIcon = {
@@ -144,10 +144,10 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
                 }
 
                 val pinjamanValue = nominalPinjaman.toDoubleOrNull()
-                val bungaValue = bunga.toDoubleOrNull()
+                val totaldenda = denda.toDoubleOrNull()
                 val lamaPinjamValue = lamaPinjaman.toIntOrNull()
 
-                if (namaPinjaman.isEmpty() || pinjamanValue == null || bungaValue == null || lamaPinjamValue == null) {
+                if (namaPinjaman.isEmpty() || pinjamanValue == null || totaldenda == null || lamaPinjamValue == null) {
                     Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
@@ -157,7 +157,7 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
 
                 hutangViewModel.hitungDanSimpanHutang(
                     hutangType = HutangViewModel.HutangType.PERHITUNGAN,
-                    namaPinjaman, pinjamanValue, bungaValue, lamaPinjamValue, tanggalPinjam, catatan
+                    namaPinjaman, pinjamanValue, totaldenda, lamaPinjamValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {

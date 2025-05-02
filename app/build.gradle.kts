@@ -93,7 +93,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
 
     // kalender Update
-    implementation("com.kizitonwose.calendar:compose:2.3.0")
+    implementation("com.kizitonwose.calendar:compose:2.4.1")
 
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material:material")
@@ -108,6 +108,10 @@ dependencies {
     implementation ("com.google.zxing:core:3.5.1")
     implementation ("androidx.core:core-ktx:1.10.1")
     implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    //Notifikasi
+    implementation("com.google.firebase:firebase-messaging")
+    implementation ("androidx.work:work-runtime-ktx:2.9.0")
 
 
 
