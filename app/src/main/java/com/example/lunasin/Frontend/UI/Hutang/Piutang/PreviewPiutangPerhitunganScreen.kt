@@ -59,14 +59,7 @@ fun PreviewPiutangPerhitunganScreen(
         },
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Detail Piutang",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
+                title = { /* Empty title */ },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -121,6 +114,13 @@ fun PreviewPiutangPerhitunganScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Text(
+                text = "Detail Piutang Perhitungan",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+            )
             if (hutang == null) {
                 Box(
                     modifier = Modifier
@@ -139,14 +139,7 @@ fun PreviewPiutangPerhitunganScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                )
-                            )
-                        )
+                        .background(color = MaterialTheme.colorScheme.primary)
                         .padding(16.dp)
                 ) {
                     Column {
@@ -156,7 +149,7 @@ fun PreviewPiutangPerhitunganScreen(
                             color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f)
                         )
                         Text(
-                            text = hutang.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00",
+                            text = hutang.totalHutang?.let { formatRupiah(it) } ?: "Rp0,00",
                             style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.onSecondary,
                             fontWeight = FontWeight.Bold
@@ -287,15 +280,14 @@ fun PreviewPiutangPerhitunganScreen(
                         .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    FilledTonalButton(
+                    OutlinedButton(
                         onClick = { navController.popBackStack() },
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
@@ -307,7 +299,7 @@ fun PreviewPiutangPerhitunganScreen(
                             .padding(start = 8.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
+                            containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onSecondary
                         )
                     ) {

@@ -347,7 +347,7 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Nominal: Rp ${String.format("%,.0f", piutang.nominalpinjaman)}",
+                        text = "Nominal: Rp ${String.format("%,.0f", piutang.totalHutang)}",
                         style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
                     )
                     Text(

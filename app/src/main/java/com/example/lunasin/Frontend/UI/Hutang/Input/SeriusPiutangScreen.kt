@@ -158,29 +158,6 @@ fun SeriusPiutangScreen(
             )
 
             OutlinedTextField(
-                value = tanggalJatuhTempo,
-                onValueChange = {},
-                label = { Text("Tanggal Jatuh Tempo") },
-                modifier = Modifier.fillMaxWidth(),
-                readOnly = true,
-                trailingIcon = {
-                    IconButton(onClick = { datePicker { tanggalJatuhTempo = it } }) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Pilih Tanggal",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                )
-            )
-
-            OutlinedTextField(
                 value = bunga,
                 onValueChange = { bunga = it },
                 label = { Text("Bunga (%)") },
@@ -242,7 +219,7 @@ fun SeriusPiutangScreen(
 
                 Button(
                     onClick = {
-                        if (tanggalPinjam == "Pilih Tanggal" || tanggalJatuhTempo == "Pilih Tanggal Jatuh Tempo") {
+                        if (tanggalPinjam == "Pilih Tanggal") {
                             Toast.makeText(context, "Harap pilih tanggal pinjaman dan jatuh tempo!", Toast.LENGTH_SHORT).show()
                             return@Button
                         }

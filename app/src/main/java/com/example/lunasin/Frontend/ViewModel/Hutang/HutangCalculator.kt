@@ -3,37 +3,92 @@ package com.example.lunasin.Frontend.ViewModel.Hutang
 import android.util.Log
 import java.text.NumberFormat
 import java.time.LocalDate
+import java.time.Period
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object HutangCalculator {
-    // Hitung denda
-    fun dendaBunga_Tahunan(sisahutang:Double, bunga:Double, telat:Int): Double
-    {
-        val  Per_bunga = bunga / 100
-        val denda1 = Per_bunga/365
-        val denda2 = denda1 * sisahutang
-        return denda2 * telat
+    // Hitung denda berdasarkan bunga tahunan
+    fun dendaBunga_Tahunan(sisahutang: Double, bunga: Double, telat: Int): Double {
+        val perBunga = bunga / 100
+        val dendaPerHari = perBunga / 365
+        val denda = dendaPerHari * sisahutang
+        return denda * telat
     }
 
-    fun dendaBunga_Bulan(sisahutang:Double, bunga:Double, telat:Int): Double
-    {
-        val  Per_bunga = bunga / 100
-        val denda1 = Per_bunga/12
-        val denda2 = denda1 * sisahutang
-        return denda2 * telat
+    // Hitung denda berdasarkan bunga bulanan
+    fun dendaBunga_Bulan(sisahutang: Double, bunga: Double, telat: Int): Double {
+        val perBunga = bunga / 100
+        val dendaPerBulan = perBunga / 12
+        val denda = dendaPerBulan * sisahutang
+        return denda * telat
     }
 
-    fun dendaTetap (denda : Double, Telat : Double) : Double
-    {
-        return denda + Telat
+    // Denda tetap hanya mengembalikan nilai denda yang diinput
+    fun dendaTetap(denda: Double): Double {
+        return denda
     }
 
-    fun denda_Cicilan(sisahutang:Double, bunga:Double, telat:Int): Double
-    {
-        val  Per_bunga = bunga / 100
-        val denda1 = Per_bunga * sisahutang
-        return denda1 * telat
+    // Hitung denda untuk cicilan
+    fun denda_Cicilan(sisahutang: Double, bunga: Double, telat: Int): Double {
+        val perBunga = bunga / 100
+        val denda = perBunga * sisahutang
+        return denda * telat
+    }
+
+    // Hitung jumlah hari keterlambatan berdasarkan tanggal jatuh tempo
+    fun hitungKeterlambatan(tanggalJatuhTempo: String, tanggalSekarang: LocalDate): Int {
+        return try {
+            val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
+            val jatuhTempo = possibleFormats.firstNotNullOfOrNull { format ->
+                try {
+                    LocalDate.parse(tanggalJatuhTempo, DateTimeFormatter.ofPattern(format))
+                } catch (e: Exception) {
+                    null
+                }
+            } ?: throw IllegalArgumentException("Format tanggal tidak dikenali")
+
+            if (tanggalSekarang.isAfter(jatuhTempo)) {
+                Period.between(jatuhTempo, tanggalSekarang).days
+            } else {
+                0
+            }
+        } catch (e: Exception) {
+            Log.e("TanggalError", "Gagal menghitung keterlambatan: $tanggalJatuhTempo", e)
+            0
+        }
+    }
+
+    // Hitung denda per angsuran untuk listTempo
+    fun hitungDendaListTempo(
+        listTempo: List<Map<String, Any>>,
+        nominalPerAngsuran: Double,
+        bunga: Double,
+        tanggalSekarang: LocalDate
+    ): Double {
+        var totalDenda = 0.0
+        val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
+
+        listTempo.forEach { tempo ->
+            val tanggalTempo = tempo["tanggalTempo"] as? String ?: return@forEach
+            val angsuranKe = tempo["angsuranKe"] as? Int ?: return@forEach
+
+            val jatuhTempo = possibleFormats.firstNotNullOfOrNull { format ->
+                try {
+                    LocalDate.parse(tanggalTempo, DateTimeFormatter.ofPattern(format))
+                } catch (e: Exception) {
+                    null
+                }
+            } ?: return@forEach
+
+            if (tanggalSekarang.isAfter(jatuhTempo)) {
+                val telatHari = Period.between(jatuhTempo, tanggalSekarang).days
+                val denda = denda_Cicilan(nominalPerAngsuran, bunga, telatHari)
+                totalDenda += denda
+                Log.d("DendaListTempo", "Angsuran ke-$angsuranKe terlambat $telatHari hari, denda: $denda")
+            }
+        }
+        return totalDenda
     }
 
     // Personaliasi Akun
@@ -46,27 +101,22 @@ object HutangCalculator {
         }
     }
 
-    fun debt_Service_Coverage_Ratio(pendapatan: Double,totalcicilan: Double): String {
+    fun debt_Service_Coverage_Ratio(pendapatan: Double, totalcicilan: Double): String {
         val dscr = totalcicilan / pendapatan
-        return if (dscr >= 1)
-        {
-            "Aman : Resiko Gagal bayar aman"
-        }
-        else
-        {
-            "Warning: Resiko Gagal bayar tinggi."
+        return if (dscr >= 1) {
+            "Aman: Risiko gagal bayar aman"
+        } else {
+            "Warning: Risiko gagal bayar tinggi"
         }
     }
 
     fun rumus_Amorsiasi(angsuranPerbulan: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bunga1 = bunga/100
-        val total1 = 1 + bunga1
-        val total2_pembagi = pangkat(total1,lamaPinjam) - 1
-
-        val total1_penyebut = pangkat(total1,lamaPinjam)
-        val total2_penyebut = total1_penyebut * bunga1 * angsuranPerbulan
-
-        return total2_penyebut/total2_pembagi
+        val bungaDesimal = bunga / 100
+        val total1 = 1 + bungaDesimal
+        val total2_pembagi = pangkat(total1, lamaPinjam) - 1
+        val total1_penyebut = pangkat(total1, lamaPinjam)
+        val total2_penyebut = total1_penyebut * bungaDesimal * angsuranPerbulan
+        return total2_penyebut / total2_pembagi
     }
 
     fun formatRupiah(amount: Double): String {
@@ -85,10 +135,8 @@ object HutangCalculator {
     fun cicilanPerbulan(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
         val bungaDesimal = bunga / 100.0
         val bungaR = 1 + bungaDesimal
-
         val total1 = nominalPinjaman * bungaDesimal * pangkat(bungaR, lamaPinjam)
         val total2 = pangkat(bungaR, lamaPinjam) - 1
-
         return if (total2 != 0.0) total1 / total2 else nominalPinjaman / lamaPinjam
     }
 
@@ -100,7 +148,6 @@ object HutangCalculator {
     fun hitungTanggalAkhir(tanggalPinjam: String, lamaPinjam: Int): String {
         return try {
             val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
-
             val tanggalawal = possibleFormats.firstNotNullOfOrNull { format ->
                 try {
                     LocalDate.parse(tanggalPinjam, DateTimeFormatter.ofPattern(format))
@@ -108,7 +155,6 @@ object HutangCalculator {
                     null
                 }
             } ?: throw IllegalArgumentException("Format tanggal tidak dikenali")
-
             val tanggalakhir = tanggalawal.plusMonths(lamaPinjam.toLong())
             tanggalakhir.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         } catch (e: Exception) {

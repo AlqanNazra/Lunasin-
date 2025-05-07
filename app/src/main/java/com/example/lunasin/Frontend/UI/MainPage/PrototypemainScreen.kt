@@ -318,7 +318,7 @@ fun HutangItemMini(hutang: Hutang) {
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "Total Hutang: ${hutang.nominalpinjaman?.let { String.format("%,.0f", it) } ?: "0"}",
+                text = "Nominal Pinjaman: ${hutang.nominalpinjaman?.let { String.format("%,.0f", it) } ?: "0"}",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF3F51B5))
             )
             Text(
