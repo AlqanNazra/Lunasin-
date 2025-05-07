@@ -20,6 +20,9 @@ import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
 import com.google.firebase.auth.FirebaseAuth
 import com.example.lunasin.Frontend.UI.Inputhutang.TanggalBayarScreen
 import com.example.lunasin.Frontend.UI.Inputhutang.TanggalTempoScreen
+import com.example.lunasin.Frontend.UI.onboarding.OnboardingScreen
+import com.example.lunasin.utils.OnboardingPrefs
+
 
 
 @Composable
@@ -30,10 +33,22 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
         navController = navController,
         startDestination = Screen.Login.route
     ) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                onFinish = {
+                    // Tandai onboarding selesai
+                    OnboardingPrefs.setOnboardingCompleted(navController.context)
+                    // Arahkan ke layar login
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Login.route) {
             LoginScreen(authViewModel, navController)
         }
-        
+
         composable(Screen.SignUp.route) {
             SignUpScreen(authViewModel, navController)
         }

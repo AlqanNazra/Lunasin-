@@ -4,21 +4,29 @@ import android.app.DatePickerDialog
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
-import java.util.*
+import java.util.Calendar
 
 @Composable
 fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
@@ -48,68 +56,93 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
         ).show()
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Masukkan Data", fontSize = 20.sp, color = Color(0xFF008D36))
-        Text("Luna butuh info-info ini buat bisa catat hutang kamu", fontSize = 14.sp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Header
+        Text(
+            text = "Masukkan Data",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF008D36)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Luna butuh info-info ini buat bisa catat hutang kamu",
+            fontSize = 14.sp,
+            color = Color.Black
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Input Nama Pinjaman
+        // Input Nama Peminjam
         OutlinedTextField(
             value = namaPinjaman,
             onValueChange = { namaPinjaman = it },
-            label = { Text("Nama Pinjaman") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("Nama Peminjam") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
         // Input Nominal Pinjaman
         OutlinedTextField(
-            value = nominalPinjaman.toString(),
-            onValueChange = {
-                if (it.all { char -> char.isDigit() }) nominalPinjaman = it
-            },
+            value = nominalPinjaman,
+            onValueChange = { if (it.all { char -> char.isDigit() }) nominalPinjaman = it },
             label = { Text("Nominal Pinjaman") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
-        // Input Bunga
-        OutlinedTextField(
-            value = bunga.toString(),
-            onValueChange = {
-                if (it.all { char -> char.isDigit() || char == '.' }) bunga = it
-            },
-            label = { Text("Bunga per Bulan (%)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Input Periode Pinjaman
-        OutlinedTextField(
-            value = periodePinjaman.toString(),
-            onValueChange = {
-                if (it.all { char -> char.isDigit() }) periodePinjaman = it
-            },
-            label = { Text("Periode Pinjaman (Bulan)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // Input Tanggal Mulai Pinjaman
         OutlinedTextField(
             value = tanggalPinjam,
             onValueChange = {},
             label = { Text("Tanggal Mulai Pinjaman") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = { datePicker { tanggalPinjam = it } }) {
                     Icon(
                         imageVector = Icons.Default.DateRange,
-                        contentDescription = "Pilih Tanggal"
+                        contentDescription = "Pilih Tanggal",
+                        tint = Color.Gray
                     )
                 }
-            }
+            },
+            shape = RoundedCornerShape(8.dp)
+        )
+
+        // Input Bunga per Bulan
+        OutlinedTextField(
+            value = bunga,
+            onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) bunga = it },
+            label = { Text("Bunga per Bulan (%)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
+        )
+
+        // Input Periode Pinjaman
+        OutlinedTextField(
+            value = periodePinjaman,
+            onValueChange = { if (it.all { char -> char.isDigit() }) periodePinjaman = it },
+            label = { Text("Periode Pinjaman (Bulan)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
         // Input Catatan
@@ -117,7 +150,10 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
             value = catatan,
             onValueChange = { catatan = it },
             label = { Text("Catatan") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -143,8 +179,8 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
                 Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
 
                 hutangViewModel.hitungDanSimpanHutang(
-                    hutangType = HutangViewModel.HutangType.SERIUS
-                    ,namaPinjaman, nominalValue, bungaValue, periodeValue, tanggalPinjam, catatan
+                    hutangType = HutangViewModel.HutangType.SERIUS,
+                    namaPinjaman, nominalValue, bungaValue, periodeValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
@@ -157,13 +193,20 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            enabled = !isLoading,
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF00C4B4),
+                contentColor = Color.White
+            )
         ) {
             if (isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Confirm")
+                Text("Confirm", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
         }
 
@@ -171,7 +214,7 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
             navigateToPreview?.let { docId ->
                 showPopup = false
                 delay(500)
-                navController.navigate("preview_hutang/$docId")  // Navigasi ke Preview Hutang
+                navController.navigate("preview_hutang/$docId")
                 navigateToPreview = null
             }
         }
@@ -191,13 +234,6 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
                 confirmButton = { }
             )
         }
-        Button(
-            onClick = { navController.popBackStack() },
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
-        ) {
-            Text("Kembali", color = Color.White)
-        }
-
 
         // Popup Notifikasi
         if (showPopup) {

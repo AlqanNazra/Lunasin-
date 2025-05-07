@@ -25,6 +25,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.lunasin.Backend.model.Tempo
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.log
 
@@ -35,36 +36,47 @@ class NotifikasiUtils(
 ) : CoroutineWorker(context, workerParameters) {
 
     override suspend fun doWork(): Result {
+        Log.d("NotifikasiUtils", "Worker dijalankan pada ${LocalDateTime.now()}")
         val db = FirebaseFirestore.getInstance()
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return Result.failure()
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+            Log.e("NotifikasiUtils", "User tidak login")
+            return Result.failure()
+        }
 
         val hariIni = LocalDate.now()
         val besok = hariIni.plusDays(1)
         val lusa = hariIni.plusDays(2)
+        Log.d("NotifikasiUtils", "Hari ini: $hariIni, Besok: $besok, Lusa: $lusa")
 
         try {
             db.collection("hutang")
                 .whereEqualTo("id_penerima", userId)
                 .get()
                 .addOnSuccessListener { documents ->
+                    Log.d("NotifikasiUtils", "Jumlah dokumen ditemukan: ${documents.size()}")
+                    if (documents.isEmpty) {
+                        Log.d("NotifikasiUtils", "Tidak ada hutang untuk userId: $userId")
+                    }
+
                     val hasPermission = ContextCompat.checkSelfPermission(
                         applicationContext,
                         android.Manifest.permission.POST_NOTIFICATIONS
                     ) == PackageManager.PERMISSION_GRANTED
 
                     if (!hasPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        return@addOnSuccessListener // Jangan tampilkan notifikasi kalau belum diizinkan
+                        Log.e("NotifikasiUtils", "Izin POST_NOTIFICATIONS tidak diberikan")
+                        return@addOnSuccessListener
                     }
 
                     for (doc in documents) {
                         val tanggal = doc.getString("tanggalBayar") ?: continue
                         val namaPinjaman = doc.getString("namapinjaman") ?: "Tidak diketahui"
+                        Log.d("NotifikasiUtils", "Dokumen: ${doc.data}")
 
                         try {
-                            val tenggatWaktu = LocalDate.parse(tanggal)
+                            val tenggatWaktu = LocalDate.parse(tanggal, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                            Log.d("NotifikasiUtils", "Tenggat waktu: $tenggatWaktu untuk $namaPinjaman")
                             if (tenggatWaktu == hariIni || tenggatWaktu == besok || tenggatWaktu == lusa) {
-                                val namaPinjaman =
-                                    doc.getString("namapinjaman") ?: "Tidak diketahui"
                                 showNotification(
                                     applicationContext,
                                     "Pengingat Pembayaran",
@@ -72,12 +84,11 @@ class NotifikasiUtils(
                                 )
                             }
                         } catch (e: Exception) {
-                            Log.e("NotifikasiUtils", "Error parsing tanggal: ${e.message}")
+                            Log.e("NotifikasiUtils", "Error parsing tanggalBayar: ${e.message}")
                             continue
                         }
 
-                        val listTempoRaw =
-                            doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
+                        val listTempoRaw = doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
                         val listTempo = listTempoRaw.map { Tempo.fromMap(it) }
 
                         for (tempo in listTempo) {
@@ -86,9 +97,8 @@ class NotifikasiUtils(
                                     tempo.tanggalTempo,
                                     DateTimeFormatter.ofPattern("dd/MM/yyyy")
                                 )
+                                Log.d("NotifikasiUtils", "Tenggat tempo: $tenggatTempo untuk angsuran ke-${tempo.angsuranKe}")
                                 if (tenggatTempo == hariIni || tenggatTempo == besok || tenggatTempo == lusa) {
-                                    val namaPinjaman =
-                                        doc.getString("namapinjaman") ?: "Tidak diketahui"
                                     showNotification(
                                         applicationContext,
                                         "Pengingat Angsuran",
@@ -96,18 +106,16 @@ class NotifikasiUtils(
                                     )
                                 }
                             } catch (e: Exception) {
-                                Log.e("NotifikasiUtils", "Error parsing tanggal: ${e.message}")
+                                Log.e("NotifikasiUtils", "Error parsing tanggalTempo: ${e.message}")
                                 continue
                             }
                         }
-
                     }
                 }
 
-
             return Result.success()
-        }catch (e: Exception){
-            Log.e("NotifikasiUtils", "Error: ${e.message}")
+        } catch (e: Exception) {
+            Log.e("NotifikasiUtils", "Error umum: ${e.message}")
             return Result.failure()
         }
     }

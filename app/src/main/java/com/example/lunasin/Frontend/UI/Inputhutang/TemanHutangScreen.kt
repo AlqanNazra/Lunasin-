@@ -1,26 +1,32 @@
 package com.example.lunasin.Frontend.UI.Inputhutang
 
-
-
 import android.app.DatePickerDialog
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
-import java.util.*
+import java.util.Calendar
 
 @Composable
 fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
@@ -30,7 +36,6 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
     var tanggalPinjam by remember { mutableStateOf("Pilih Tanggal") }
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
     var catatan by remember { mutableStateOf("") }
-
 
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
@@ -49,42 +54,69 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
         ).show()
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Masukkan Data", fontSize = 20.sp, color = Color(0xFF008D36))
-        Text("Luna butuh info-info ini buat bisa catat hutang kamu", fontSize = 14.sp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Header
+        Text(
+            text = "Masukkan Data",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF008D36)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Luna butuh info-info ini buat bisa catat hutang kamu",
+            fontSize = 14.sp,
+            color = Color.Black
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Input Nama Peminjam
         OutlinedTextField(
             value = namaPinjaman,
             onValueChange = { namaPinjaman = it },
-            label = { Text("Nama Pinjaman") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("Nama Peminjam") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
+        // Input Nominal Pinjaman
         OutlinedTextField(
             value = nominalPinjaman,
             onValueChange = { nominalPinjaman = it },
             label = { Text("Nominal Pinjaman") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // Input Tanggal Mulai Pinjaman
         OutlinedTextField(
             value = tanggalPinjam,
             onValueChange = {},
             label = { Text("Tanggal Mulai Pinjaman") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = { datePicker { tanggalPinjam = it } }) {
                     Icon(
                         imageVector = Icons.Default.DateRange,
-                        contentDescription = "Pilih Tanggal"
+                        contentDescription = "Pilih Tanggal",
+                        tint = Color.Gray
                     )
                 }
-            }
+            },
+            shape = RoundedCornerShape(8.dp)
         )
 
         // Input Catatan
@@ -92,11 +124,15 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
             value = catatan,
             onValueChange = { catatan = it },
             label = { Text("Catatan") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            shape = RoundedCornerShape(8.dp)
         )
 
-
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Tombol Confirm
         Button(
             onClick = {
                 if (tanggalPinjam == "Pilih Tanggal") {
@@ -105,7 +141,6 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 }
 
                 val pinjamanValue = nominalPinjaman.toDoubleOrNull()
-
 
                 if (namaPinjaman.isEmpty() || pinjamanValue == null) {
                     Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()
@@ -123,8 +158,7 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                     catatan = catatan,
                     bunga = 0.0,
                     lamaPinjam = 0,
-                )
-                { success, docId ->
+                ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
                         popupMessage = "Hutang berhasil disimpan! Data jatuh tempo juga dibuat."
@@ -136,26 +170,31 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            enabled = !isLoading,
+            shape = RoundedCornerShape(24.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF00C4B4),
+                contentColor = Color.White
+            )
         ) {
             if (isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Confirm")
+                Text("Confirm", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
         }
-
 
         LaunchedEffect(navigateToPreview) {
             navigateToPreview?.let { docId ->
                 showPopup = false
                 delay(500)
-                navController.navigate("teman_preview_hutang/$docId")  // Navigasi ke Preview Hutang
+                navController.navigate("teman_preview_hutang/$docId")
                 navigateToPreview = null
             }
         }
-
 
         // Dialog Loading
         if (isLoading) {
@@ -172,13 +211,6 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
                 confirmButton = { }
             )
         }
-        Button(
-            onClick = { navController.popBackStack() },
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
-        ) {
-            Text("Kembali", color = Color.White)
-        }
-
 
         // Popup Notifikasi
         if (showPopup) {
@@ -195,4 +227,3 @@ fun TemanHutangScreen(hutangViewModel: HutangViewModel, navController: NavContro
         }
     }
 }
-

@@ -7,6 +7,7 @@ import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.lunasin.utils.generateQRCode
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 
 fun generateQRCode(content: String, size: Int = 512): Bitmap {
     val bitMatrix: BitMatrix = MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size)
@@ -35,9 +40,27 @@ fun generateQRCode(content: String, size: Int = 512): Bitmap {
 fun QrCodeDialogButton(data: String = "lunasin://previewHutang?docId=preview123") {
     var showDialog by remember { mutableStateOf(false) }
 
-    Button(onClick = { showDialog = true }) {
-        Text("Generate QR Code")
+    Button(
+        onClick = { showDialog = true },
+        modifier = Modifier
+            .fillMaxWidth() // tombol selebar parent
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 8.dp
+        )
+    ) {
+        Text(
+            text = "Generate QR Code",
+            style = MaterialTheme.typography.labelLarge
+        )
     }
+
 
     if (showDialog) {
         AlertDialog(

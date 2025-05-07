@@ -100,6 +100,9 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui-text")
     implementation("androidx.activity:activity-compose") // tetap boleh tanpa versi karena bom juga
+    implementation ("androidx.navigation:navigation-compose:2.7.0")
+    implementation ("com.google.accompanist:accompanist-pager:0.32.0")
+    implementation ("com.google.accompanist:accompanist-pager-indicators:0.32.0")
 
     implementation ("io.coil-kt:coil-compose:2.4.0")
     implementation("com.google.accompanist:accompanist-pager:0.30.1")
