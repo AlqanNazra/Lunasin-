@@ -7,6 +7,12 @@ enum class HutangType {
     SERIUS
 }
 
+// Definisikan enum StatusBayar untuk status pembayaran
+enum class StatusBayar {
+    LUNAS,
+    BELUM_LUNAS
+}
+
 data class Tempo(
     val angsuranKe: Int = 0,
     val tanggalTempo: String = ""
@@ -40,7 +46,7 @@ data class Hutang(
     // Model untuk perhitungan hutang
     val totalHutang: Double = 0.0,
     val totalDenda: Double = 0.0,
-    val tanggalBayar: String = "",
+    val tanggalBayar: String = "", // Untuk menyimpan tanggal pembayaran (jika sudah dibayar)
     // Model untuk perhitungan hutang
     val listTempo: List<Tempo> = emptyList(),
     val bunga: Double = 0.0,
@@ -48,9 +54,15 @@ data class Hutang(
     val totalbunga: Double = 0.0,
     val totalcicilan: Double = 0.0,
     // Tambahkan field untuk jenis hutang
-    val hutangType: HutangType? = null
+    val hutangType: HutangType? = null,
+    // Tambahkan field untuk membedakan Hutang/Piutang
+    val type: String = "",
+    // Tambahkan field untuk tanggal jatuh tempo
+    val tanggalJatuhTempo: String = "",
+    // Tambahkan field untuk status pembayaran
+    val statusBayar: StatusBayar? = StatusBayar.BELUM_LUNAS // Default ke BELUM_LUNAS
 ) {
-    fun toMap(): Map<String, Any?> { // id_penerima bisa null, jadi pakai Any?
+    fun toMap(): Map<String, Any?> {
         return mapOf(
             // model Default untuk model hutang yang ada
             "docId" to docId,
@@ -71,7 +83,13 @@ data class Hutang(
             "totalbunga" to totalbunga,
             "listTempo" to listTempo.map { it.toMap() }, // Konversi list ke List<Map<String, Any>>
             // Simpan hutangType sebagai String
-            "hutangType" to hutangType?.name
+            "hutangType" to hutangType?.name,
+            // Simpan type
+            "type" to type,
+            // Simpan tanggal jatuh tempo
+            "tanggalJatuhTempo" to tanggalJatuhTempo,
+            // Simpan statusBayar sebagai String
+            "statusBayar" to statusBayar?.name
         )
     }
 
@@ -93,7 +111,7 @@ data class Hutang(
                 totalcicilan = (map["totalcicilan"] as? Double) ?: 0.0,
                 totalbunga = (map["totalbunga"] as? Double) ?: 0.0,
                 catatan = map["catatan"] as? String ?: "",
-                id_penerima = map["id_penerima"] as? String, // Ambil dari Firestore
+                id_penerima = map["id_penerima"] as? String,
                 listTempo = (map["listTempo"] as? List<*>)?.mapNotNull {
                     (it as? Map<String, Any>)?.let { Tempo.fromMap(it) }
                 } ?: emptyList(),
@@ -102,6 +120,16 @@ data class Hutang(
                     map["hutangType"]?.let { HutangType.valueOf(it as String) }
                 } catch (e: Exception) {
                     null
+                },
+                // Ambil type dari Firestore
+                type = map["type"] as? String ?: "",
+                // Ambil tanggal jatuh tempo dari Firestore
+                tanggalJatuhTempo = map["tanggalJatuhTempo"] as? String ?: "",
+                // Konversi String dari Firestore kembali ke StatusBayar
+                statusBayar = try {
+                    map["statusBayar"]?.let { StatusBayar.valueOf(it as String) }
+                } catch (e: Exception) {
+                    StatusBayar.BELUM_LUNAS // Default ke BELUM_LUNAS jika gagal
                 }
             )
         }

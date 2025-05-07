@@ -35,9 +35,9 @@ fun TemanPiutangScreen(
 ) {
     val context = LocalContext.current
     var namaPinjaman by remember { mutableStateOf("") }
-    var idPenerima by remember { mutableStateOf("") } // Input untuk ID penerima
     var nominalPinjaman by remember { mutableStateOf("") }
     var tanggalPinjam by remember { mutableStateOf("Pilih Tanggal") }
+    var tanggalJatuhTempo by remember { mutableStateOf("Pilih Tanggal Jatuh Tempo") }
     var catatan by remember { mutableStateOf("") }
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -108,20 +108,7 @@ fun TemanPiutangScreen(
             OutlinedTextField(
                 value = namaPinjaman,
                 onValueChange = { namaPinjaman = it },
-                label = { Text("Nama Penerima Pinjaman") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                )
-            )
-
-            OutlinedTextField(
-                value = idPenerima,
-                onValueChange = { idPenerima = it },
-                label = { Text("ID Penerima (User ID)") },
+                label = { Text("Nama Pemberi Pinjaman") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -153,6 +140,29 @@ fun TemanPiutangScreen(
                 readOnly = true,
                 trailingIcon = {
                     IconButton(onClick = { datePicker { tanggalPinjam = it } }) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Pilih Tanggal",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                )
+            )
+
+            OutlinedTextField(
+                value = tanggalJatuhTempo,
+                onValueChange = {},
+                label = { Text("Tanggal Jatuh Tempo Pembayaran") },
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
+                trailingIcon = {
+                    IconButton(onClick = { datePicker { tanggalJatuhTempo = it } }) {
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Pilih Tanggal",
@@ -207,11 +217,6 @@ fun TemanPiutangScreen(
                             return@Button
                         }
 
-                        if (idPenerima.isEmpty()) {
-                            Toast.makeText(context, "Harap masukkan ID Penerima!", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-
                         val pinjamanValue = nominalPinjaman.toDoubleOrNull()
 
                         if (namaPinjaman.isEmpty() || pinjamanValue == null) {
@@ -230,11 +235,12 @@ fun TemanPiutangScreen(
                             bunga = 0.0,
                             lamaPinjam = 0,
                             tanggalPinjam = tanggalPinjam,
+                            tanggalJatuhTempo = tanggalJatuhTempo,
                             catatan = catatan
                         ) { success, docId ->
                             isLoading = false
                             if (success && docId != null) {
-                                popupMessage = "Piutang berhasil disimpan! Hutang juga dibuat untuk penerima."
+                                popupMessage = "Piutang berhasil disimpan!"
                                 showPopup = true
                                 navigateToPreview = docId
                             } else {

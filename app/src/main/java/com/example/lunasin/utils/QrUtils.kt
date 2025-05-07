@@ -1,101 +1,83 @@
 package com.example.lunasin.utils
 
-import android.graphics.Bitmap
-import android.graphics.Color
 import com.google.zxing.BarcodeFormat
-import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.lunasin.utils.generateQRCode
+import androidx.compose.material3.*
+import com.google.zxing.qrcode.QRCodeWriter
 
-fun generateQRCode(content: String, size: Int = 512): Bitmap {
-    val bitMatrix: BitMatrix = MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size)
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565)
-
-    for (x in 0 until size) {
-        for (y in 0 until size) {
-            bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
-        }
-    }
-    return bitmap
-}
-
+@Composable
 @Preview(showBackground = true)
-@Composable
-fun QrCodeDialogButton(data: String = "lunasin://previewHutang?docId=preview123") {
-    var showDialog by remember { mutableStateOf(false) }
-
-    Button(onClick = { showDialog = true }) {
-        Text("Generate QR Code")
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("QR Code") },
-            text = {
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // ✅ Gunakan scope maxWidth di sini
-                    val qrSize = if (this.maxWidth < 300.dp) this.maxWidth - 32.dp else 250.dp
-
-                    val qrBitmap = remember(data) {
-                        generateQRCode(data)
-                    }
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    ) {
-                        Image(
-                            bitmap = qrBitmap.asImageBitmap(),
-                            contentDescription = "",
-                            modifier = Modifier.size(qrSize)
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(onClick = { showDialog = false }) {
-                    Text("Tutup")
-                }
+fun QrCodeDialogButton(
+    data: String,
+    onDismissRequest: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text("Tutup", color = MaterialTheme.colorScheme.secondary)
             }
-        )
-    }
+        },
+        title = {
+            Text(
+                text = "QR Code",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Generate QR Code (placeholder implementation)
+                val qrCodeBitmap = generateQrCode(data)
+                qrCodeBitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "QR Code",
+                        modifier = Modifier
+                            .size(200.dp)
+                            .padding(16.dp)
+                    )
+                }
+                Text(
+                    text = "Scan kode ini untuk klaim hutang",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        containerColor = MaterialTheme.colorScheme.surface
+    )
 }
 
 @Composable
-fun GenerateQrScreen(docId: String) {
-    val context = LocalContext.current
-    val qrData = "https://lunasin.app/hutang?docId=$docId"
-    val qrBitmap = generateQRCode(qrData)
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Scan untuk lihat detail hutang")
-        Spacer(modifier = Modifier.height(16.dp))
-        Image(
-            bitmap = qrBitmap.asImageBitmap(),
-            contentDescription = "QR Code Hutang",
-            modifier = Modifier.size(250.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(qrData, fontSize = 12.sp)
+fun generateQrCode(data: String): android.graphics.Bitmap? {
+    return try {
+        val qrCodeWriter = QRCodeWriter()
+        val bitMatrix: BitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, 200, 200)
+        val width = bitMatrix.width
+        val height = bitMatrix.height
+        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.RGB_565)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+            }
+        }
+        bitmap
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

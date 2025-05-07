@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
+import com.example.lunasin.Backend.Model.StatusBayar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,25 +96,6 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         }
     }
 
-    // Fungsi untuk menambahkan hutang baru
-    fun tambahHutang(hutang: Hutang) {
-        viewModelScope.launch {
-            val user = FirebaseAuth.getInstance().currentUser
-            if (user != null) {
-                val hutangDenganUserId = hutang.copy(userId = user.uid)
-                firestoreService.simpanHutang(hutangDenganUserId) { sukses ->
-                    if (sukses) {
-                        Log.d("HutangViewModel", "Hutang berhasil disimpan dengan userId: ${user.uid}")
-                    } else {
-                        Log.e("HutangViewModel", "Gagal menyimpan hutang ke Firestore")
-                    }
-                }
-            } else {
-                Log.e("HutangViewModel", "Gagal menyimpan hutang: User tidak ditemukan")
-            }
-        }
-    }
-
     // Fungsi untuk menghitung dan menyimpan hutang baru
     fun hitungDanSimpanHutang(
         type: String, // Menambahkan parameter type untuk membedakan Hutang/Piutang
@@ -123,6 +105,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         bunga: Double,
         lamaPinjam: Int,
         tanggalPinjam: String,
+        tanggalJatuhTempo: String,
         catatan: String,
         onResult: (Boolean, String?) -> Unit
     ) {
@@ -146,17 +129,17 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
         val hutangData = when (hutangType) {
             HutangType.SERIUS -> createHutangSeriusData(
-                userId, namapinjaman, nominalpinjaman, bunga, lamaPinjam, tanggalPinjam, catatan, calendar, sdf
+                userId, namapinjaman, nominalpinjaman, bunga, lamaPinjam, tanggalPinjam, tanggalJatuhTempo, catatan, calendar, sdf
             )
             HutangType.TEMAN -> createHutangTemanData(
-                userId, namapinjaman, nominalpinjaman, tanggalPinjam, catatan
+                userId, namapinjaman, nominalpinjaman, tanggalPinjam, tanggalJatuhTempo, catatan
             )
             HutangType.PERHITUNGAN -> createHutangPerhitunganData(
-                userId, namapinjaman, nominalpinjaman, bunga, tanggalPinjam, catatan
+                userId, namapinjaman, nominalpinjaman, bunga, tanggalPinjam, tanggalJatuhTempo, catatan
             )
         }
 
-        // Tambahkan field type ke data yang disimpan
+        // Otomatis tambahkan type ke data yang disimpan
         val finalHutangData = hutangData.toMutableMap().apply {
             put("type", type)
         }
@@ -180,19 +163,6 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             }
     }
 
-    // Fungsi untuk menghapus hutang berdasarkan documentId
-    fun hapusHutang(documentId: String, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            val result = firestoreService.hapusHutang(documentId)
-            if (result) {
-                Log.d("HapusHutang", "Hutang dengan docId $documentId berhasil dihapus.")
-                onSuccess()
-            } else {
-                Log.e("HapusHutang", "Gagal menghapus hutang dengan docId: $documentId")
-            }
-        }
-    }
-
     // Helper function untuk membuat data hutang tipe SERIUS
     private fun createHutangSeriusData(
         userId: String,
@@ -201,6 +171,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         bunga: Double,
         lamaPinjam: Int,
         tanggalPinjam: String,
+        tanggalJatuhTempo: String,
         catatan: String,
         calendar: Calendar,
         sdf: SimpleDateFormat
@@ -223,7 +194,9 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             "catatan" to catatan,
             "totalcicilan" to totalCicilan,
             "id_penerima" to "",
-            "hutangType" to HutangType.SERIUS.name // Simpan jenis hutang
+            "hutangType" to HutangType.SERIUS.name,
+            "tanggalJatuhTempo" to tanggalJatuhTempo,
+            "statusBayar" to StatusBayar.BELUM_LUNAS.name
         )
     }
 
@@ -233,16 +206,21 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         namapinjaman: String,
         nominalpinjaman: Double,
         tanggalPinjam: String,
+        tanggalJatuhTempo: String,
         catatan: String
     ): Map<String, Any?> {
+        val totalHutang = nominalpinjaman // Tambahkan totalHutang untuk konsistensi
         return mapOf(
             "userId" to userId,
             "namapinjaman" to namapinjaman,
             "nominalpinjaman" to nominalpinjaman,
+            "totalHutang" to totalHutang,
             "tanggalPinjam" to tanggalPinjam,
+            "tanggalJatuhTempo" to tanggalJatuhTempo,
             "catatan" to catatan,
             "id_penerima" to "",
-            "hutangType" to HutangType.TEMAN.name // Simpan jenis hutang
+            "hutangType" to HutangType.TEMAN.name,
+            "statusBayar" to StatusBayar.BELUM_LUNAS.name
         )
     }
 
@@ -253,18 +231,23 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         nominalpinjaman: Double,
         bunga: Double,
         tanggalPinjam: String,
+        tanggalJatuhTempo: String,
         catatan: String
     ): Map<String, Any?> {
         val denda = HutangCalculator.dendaTetap(nominalpinjaman, bunga)
+        val totalHutang = nominalpinjaman + denda // Tambahkan totalHutang untuk konsistensi
         return mapOf(
             "userId" to userId,
             "namapinjaman" to namapinjaman,
             "nominalpinjaman" to nominalpinjaman,
             "totalDenda" to denda,
+            "totalHutang" to totalHutang,
             "tanggalPinjam" to tanggalPinjam,
             "catatan" to catatan,
             "id_penerima" to "",
-            "hutangType" to HutangType.PERHITUNGAN.name // Simpan jenis hutang
+            "hutangType" to HutangType.PERHITUNGAN.name,
+            "tanggalJatuhTempo" to tanggalJatuhTempo,
+            "statusBayar" to StatusBayar.BELUM_LUNAS.name
         )
     }
 
