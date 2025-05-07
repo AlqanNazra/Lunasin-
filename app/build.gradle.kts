@@ -13,6 +13,11 @@ android {
         compose = true
     }
 
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.8.0"
+    }
+
     defaultConfig {
         applicationId = "com.example.lunasin"
         minSdk = 26
@@ -47,6 +52,12 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
+
+    // core Compose
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-text")
+
+    implementation("androidx.compose.foundation:foundation")
 
     // Material Design 3
     implementation("androidx.compose.material3:material3")
@@ -107,7 +118,5 @@ dependencies {
     implementation ("com.google.zxing:core:3.5.1")
     implementation ("androidx.core:core-ktx:1.10.1")
     implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
-
-
 
 }
