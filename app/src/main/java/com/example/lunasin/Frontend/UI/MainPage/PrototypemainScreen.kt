@@ -322,7 +322,7 @@ fun HutangItemMini(hutang: Hutang) {
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF3F51B5))
             )
             Text(
-                text = "Jatuh tempo: ${hutang.tanggalBayar.ifEmpty { "Belum ditentukan" }}",
+                text = "Jatuh tempo: ${hutang.tanggalJatuhTempo.ifEmpty { "Belum ditentukan" }}",
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, color = Color.Gray)
             )
         }
