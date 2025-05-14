@@ -19,7 +19,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-
 class HutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
     private val _hutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
     val hutangSayaList: StateFlow<List<Hutang>> = _hutangSayaList
@@ -27,7 +26,13 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     private val _hutangState = MutableStateFlow<Hutang?>(null)
     val hutangState: StateFlow<Hutang?> = _hutangState
 
+    // Tambahkan state untuk recent search
+    private val _recentSearch = MutableStateFlow<Hutang?>(null)
+    val recentSearch: StateFlow<Hutang?> = _recentSearch
+
     private val firestore = FirebaseFirestore.getInstance()
+    val currentUserId: String
+        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     fun getHutangById(Id_Transaksi: String) {
         viewModelScope.launch {
@@ -37,11 +42,10 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                     var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(Id_Transaksi = Id_Transaksi)
                     val tanggalSekarang = LocalDate.now()
 
-                    // Hitung denda dan update totalHutang berdasarkan tanggal saat ini
                     hutang = when (hutang.hutangType) {
                         HutangType.SERIUS -> {
                             val dendaListTempo = HutangCalculator.hitungDendaListTempo(
-                                listTempo = hutang.listTempo.map { it.toMap() }, // Konversi List<Tempo> ke List<Map<String, Any>>
+                                listTempo = hutang.listTempo.map { it.toMap() },
                                 nominalPerAngsuran = hutang.totalcicilan,
                                 bunga = hutang.bunga,
                                 tanggalSekarang = tanggalSekarang
@@ -73,8 +77,8 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                             val denda = if (keterlambatan > 0) {
                                 HutangCalculator.dendaBunga_Bulan(
                                     sisahutang = hutang.nominalpinjaman,
-                                    bunga = 5.0, // Default bunga jika tidak ada
-                                    telat = keterlambatan / 30 // Konversi hari ke bulan
+                                    bunga = 5.0,
+                                    telat = keterlambatan / 30
                                 )
                             } else {
                                 0.0
@@ -85,17 +89,21 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                             )
                         }
                         null -> {
-                            // Tangani kasus ketika hutangType null
                             Log.e("HutangViewModel", "HutangType null untuk docId: $Id_Transaksi")
                             hutang
                         }
                     }
                     _hutangState.value = hutang
+                    _recentSearch.value = hutang // Simpan ke recent search
                     Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutang")
                 } else {
+                    _hutangState.value = null
+                    _recentSearch.value = null
                     Log.e("Firestore", "Dokumen tidak ditemukan!")
                 }
             } catch (e: Exception) {
+                _hutangState.value = null
+                _recentSearch.value = null
                 Log.e("Firestore", "Gagal mengambil data", e)
             }
         }
@@ -103,9 +111,15 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
     fun clearHutangState() {
         _hutangState.value = null
-        Log.d("HutangViewModel", "Hasil pencarian telah dihapus")
+        Log.d("HutangViewModel", "Hutang state telah dihapus")
     }
 
+    fun clearRecentSearch() {
+        _recentSearch.value = null
+        Log.d("HutangViewModel", "Recent search telah dihapus")
+    }
+
+    // Fungsi lainnya tetap sama
     fun klaimHutang(idHutang: String, idPenerima: String) {
         val hutangRef = firestore.collection("hutang").document(idHutang)
         hutangRef.update("id_penerima", idPenerima)
@@ -130,7 +144,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                     hutang = when (hutang.hutangType) {
                         HutangType.SERIUS -> {
                             val dendaListTempo = HutangCalculator.hitungDendaListTempo(
-                                listTempo = hutang.listTempo.map { it.toMap() }, // Konversi List<Tempo> ke List<Map<String, Any>>
+                                listTempo = hutang.listTempo.map { it.toMap() },
                                 nominalPerAngsuran = hutang.totalcicilan,
                                 bunga = hutang.bunga,
                                 tanggalSekarang = tanggalSekarang
@@ -162,8 +176,8 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                             val denda = if (keterlambatan > 0) {
                                 HutangCalculator.dendaBunga_Bulan(
                                     sisahutang = hutang.nominalpinjaman,
-                                    bunga = 5.0, // Default bunga jika tidak ada
-                                    telat = keterlambatan / 30 // Konversi hari ke bulan
+                                    bunga = 5.0,
+                                    telat = keterlambatan / 30
                                 )
                             } else {
                                 0.0
@@ -174,7 +188,6 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                             )
                         }
                         null -> {
-                            // Tangani kasus ketika hutangType null
                             Log.e("HutangViewModel", "HutangType null untuk docId: ${doc.id}")
                             hutang
                         }

@@ -25,6 +25,7 @@ import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.ui.draw.clip
@@ -41,7 +42,7 @@ import kotlinx.coroutines.launch
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
     var searchId by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val hasilCari by hutangViewModel.hutangState.collectAsState()
+    val recentSearch by hutangViewModel.recentSearch.collectAsState() // Gunakan recentSearch untuk dokumen terakhir
     val hutangSayaList by hutangViewModel.hutangSayaList.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -58,11 +59,11 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
         }
     }
 
-    // Amati perubahan hasilCari untuk menampilkan pesan
-    LaunchedEffect(hasilCari) {
+    // Amati perubahan recentSearch untuk menampilkan pesan
+    LaunchedEffect(recentSearch) {
         if (isLoading) {
             isLoading = false
-            hasilCari?.let { hutang ->
+            recentSearch?.let { hutang ->
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Hutang ditemukan")
                 }
@@ -212,21 +213,44 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔁 Hasil Pencarian
-                hasilCari?.let { hutang ->
-                    Text(
-                        "Hasil Pencarian",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    HutangItem(hutang = hutang, navController = navController)
-                    Divider(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    )
+                // Dokumen Terakhir Dibuka (Recent Search)
+                val currentUserId = hutangViewModel.currentUserId
+                recentSearch?.let { hutang ->
+                    // Hanya tampilkan jika id_penerima == currentUserId (hutang) dan bukan piutang (userId != currentUserId)
+                    if (hutang.id_penerima == currentUserId && hutang.userId != currentUserId) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "Dokumen Terakhir Dibuka",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            IconButton(
+                                onClick = {
+                                    hutangViewModel.clearRecentSearch() // Hapus recent search
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear Recent Search",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        HutangItem(hutang = hutang, navController = navController)
+                        Divider(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                    }
                 }
 
                 // Daftar Hutang Saya
