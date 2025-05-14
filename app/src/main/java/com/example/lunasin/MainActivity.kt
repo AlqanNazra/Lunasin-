@@ -1,12 +1,16 @@
 package com.example.lunasin
 
+import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.lunasin.Backend.Data.login_Data.AuthRepository
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
@@ -18,6 +22,7 @@ import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModelFactory
 import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModel
 import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModelFactory
 import com.example.lunasin.theme.LunasinTheme
+import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.work.Constraints
@@ -25,8 +30,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.lunasin.utils.NotifikasiUtils
-import android.Manifest
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -36,6 +39,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Ubah status bar dan navigation bar jadi putih, dan ikon jadi gelap
+        window.statusBarColor = Color.WHITE
+        window.navigationBarColor = Color.WHITE
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = true
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightNavigationBars = true
 
         // Inisialisasi Firebase
         val authRepository = AuthRepository(FirebaseAuth.getInstance())
@@ -68,6 +77,7 @@ class MainActivity : ComponentActivity() {
             notifikasiHarian()
         }
     }
+
     private fun notifikasiHarian() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)

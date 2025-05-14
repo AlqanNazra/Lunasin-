@@ -156,7 +156,7 @@ object HutangCalculator {
                 }
             } ?: throw IllegalArgumentException("Format tanggal tidak dikenali")
             val tanggalakhir = tanggalawal.plusMonths(lamaPinjam.toLong())
-            tanggalakhir.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            tanggalakhir.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) // Konsisten dengan "dd/MM/yyyy"
         } catch (e: Exception) {
             Log.e("TanggalError", "Format tanggal salah: $tanggalPinjam", e)
             "Format Salah"
