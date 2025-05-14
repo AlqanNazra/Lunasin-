@@ -391,7 +391,7 @@ fun PreviewUtangScreen(
                             }
                         }
                         // Jika id_penerima null, tampilkan tombol Klaim Hutang
-                        hutang?.id_penerima == null -> {
+                        hutang?.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = {
                                     isClaiming = true

@@ -1,5 +1,7 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,14 +23,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
@@ -36,13 +36,17 @@ import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.theme.Black
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
     var searchId by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val recentSearch by hutangViewModel.recentSearch.collectAsState() // Gunakan recentSearch untuk dokumen terakhir
+    val recentSearch by hutangViewModel.recentSearch.collectAsState()
     val hutangSayaList by hutangViewModel.hutangSayaList.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -81,7 +85,51 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    Toast.makeText(context, "Membuka kamera untuk scan QR Code", Toast.LENGTH_SHORT).show()
+                    val options = GmsBarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                        .build()
+                    val scanner = GmsBarcodeScanning.getClient(context, options)
+                    scanner.startScan()
+                        .addOnSuccessListener { barcode ->
+                            val docId = barcode.rawValue?.trim()
+                            if (!docId.isNullOrEmpty()) {
+                                Log.d("QRScan", "Scanned docId: $docId") // Tambahkan log di sini
+                                coroutineScope.launch {
+                                    isLoading = true
+                                    hutangViewModel.getHutangById(docId)
+                                    // Setelah data dimuat, navigasi ke layar preview sesuai hutangType
+                                    hutangViewModel.hutangState.value?.let { hutang ->
+                                        when (hutang.hutangType) {
+                                            HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$docId")
+                                            HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$docId")
+                                            HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$docId")
+                                            else -> {
+                                                Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
+                                                navController.navigate("hutang_teman_preview/$docId") // Fallback
+                                            }
+                                        }
+                                    } ?: run {
+                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $docId") // Log error
+                                        snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
+                                    }
+                                    isLoading = false
+                                }
+                            } else {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Gagal memindai QR Code!")
+                                }
+                            }
+                        }
+                        .addOnFailureListener {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Gagal memulai pemindaian: ${it.message}")
+                            }
+                        }
+                        .addOnCanceledListener {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Pemindaian dibatalkan!")
+                            }
+                        }
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -187,6 +235,22 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                             isLoading = true
                             hutangViewModel.getHutangById(searchId)
                             Log.d("SearchBar", "Mencari hutang dengan ID: $searchId")
+                            // Pastikan isLoading diatur ulang setelah proses selesai
+                            coroutineScope.launch {
+                                // Tunggu hingga getHutangById selesai (opsional, tergantung kebutuhan)
+                                delay(2000) // Timeout sementara untuk debugging
+                                isLoading = false
+                                hutangViewModel.hutangState.value?.let { hutang ->
+                                    when (hutang.hutangType) {
+                                        HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$searchId")
+                                        HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$searchId")
+                                        HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$searchId")
+                                        else -> navController.navigate("hutang_teman_preview/$searchId")
+                                    }
+                                } ?: run {
+                                    snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
+                                }
+                            }
                         } else {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("Masukkan ID Hutang")

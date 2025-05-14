@@ -37,7 +37,21 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     fun getHutangById(Id_Transaksi: String) {
         viewModelScope.launch {
             try {
-                val document = firestore.collection("hutang").document(Id_Transaksi).get().await()
+                val userId = currentUserId
+                if (userId.isEmpty()) {
+                    Log.e("HutangViewModel", "User ID tidak ditemukan")
+                    _hutangState.value = null
+                    _recentSearch.value = null
+                    return@launch
+                }
+
+                // Sesuaikan path berdasarkan struktur Firestore (misalnya, subkoleksi)
+                val document = firestore
+                    .collection("hutang")
+                    .document(Id_Transaksi)
+                    .get()
+                    .await()
+
                 if (document.exists()) {
                     var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(Id_Transaksi = Id_Transaksi)
                     val tanggalSekarang = LocalDate.now()
@@ -99,7 +113,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 } else {
                     _hutangState.value = null
                     _recentSearch.value = null
-                    Log.e("Firestore", "Dokumen tidak ditemukan!")
+                    Log.e("Firestore", "Dokumen tidak ditemukan di path: users/$userId/hutang/$Id_Transaksi")
                 }
             } catch (e: Exception) {
                 _hutangState.value = null

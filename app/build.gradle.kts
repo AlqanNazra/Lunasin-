@@ -43,6 +43,7 @@ android {
 
 dependencies {
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.play.services.code.scanner)
 
     //Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
@@ -108,9 +109,8 @@ dependencies {
 
 
     //Qr code
-    implementation ("com.google.zxing:core:3.5.1")
-    implementation ("androidx.core:core-ktx:1.10.1")
-    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation ("com.google.mlkit:barcode-scanning:17.2.0")
+    implementation ("com.google.zxing:core:3.5.3")
 
     //Notifikasi
     implementation ("androidx.work:work-runtime-ktx:2.9.0")

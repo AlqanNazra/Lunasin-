@@ -315,7 +315,7 @@ fun PreviewPiutangScreen(
         // Tampilkan QR Code Dialog jika showQrCodeDialog bernilai true
         if (showQrCodeDialog && hutang?.docId != null) {
             QrCodeDialogButton(
-                data = "lunasin://previewHutang?docId=${hutang.docId}",
+                data = hutang.docId,
                 onDismissRequest = { showQrCodeDialog = false }
             )
         }
