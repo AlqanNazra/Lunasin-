@@ -36,6 +36,7 @@ data class Tempo(
 
 data class Hutang(
     // model Default untuk model hutang yang ada
+    val Id_Transaksi: String = "",
     val docId: String = "",
     val userId: String = "",
     val namapinjaman: String = "",
@@ -67,6 +68,7 @@ data class Hutang(
             // model Default untuk model hutang yang ada
             "docId" to docId,
             "userId" to userId,
+            "Id_Transaksi" to Id_Transaksi,
             "namapinjaman" to namapinjaman,
             "nominalpinjaman" to nominalpinjaman,
             "tanggalPinjam" to tanggalPinjam,
@@ -96,6 +98,8 @@ data class Hutang(
     companion object {
         fun fromMap(map: Map<String, Any>): Hutang {
             return Hutang(
+                // model Default untuk model hutang yang ada
+                Id_Transaksi = map["Id_Transaksi"] as? String ?: "",
                 docId = map["docId"] as? String ?: "",
                 userId = map["userId"] as? String ?: "",
                 namapinjaman = map["namapinjaman"] as? String ?: "",

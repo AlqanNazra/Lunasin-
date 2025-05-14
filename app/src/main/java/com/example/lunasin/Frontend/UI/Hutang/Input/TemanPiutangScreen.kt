@@ -25,6 +25,7 @@ import com.example.lunasin.Backend.Model.HutangType // Impor HutangType secara l
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.theme.Black
 import kotlinx.coroutines.delay
+import java.text.NumberFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,8 +44,9 @@ fun TemanPiutangScreen(
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
     var popupMessage by remember { mutableStateOf("") }
+    var nominalValue by remember { mutableStateOf("") }
 
-    val calendar = Calendar.getInstance()
+        val calendar = Calendar.getInstance()
     val datePicker = { onDateSelected: (String) -> Unit ->
         DatePickerDialog(
             context,
@@ -120,7 +122,19 @@ fun TemanPiutangScreen(
 
             OutlinedTextField(
                 value = nominalPinjaman,
-                onValueChange = { nominalPinjaman = it },
+                onValueChange = { input ->
+                    // Hapus titik dulu untuk ambil angka mentah
+                    val cleanInput = input.replace(".", "").filter { it.isDigit() }
+
+                    nominalValue = cleanInput
+
+                    // Format angka ke format 100.000
+                    nominalPinjaman = if (cleanInput.isNotEmpty()) {
+                        NumberFormat.getInstance(Locale("in", "ID")).format(cleanInput.toLong())
+                    } else {
+                        ""
+                    }
+                },
                 label = { Text("Nominal Piutang") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),

@@ -354,7 +354,7 @@ fun PreviewPiutangSeriusScreen(
                 FilledTonalButton(
                     onClick = {
                         if (docId.isNotEmpty()) {
-                            navController.navigate("hutang_serius_tempo/$docId")
+                            navController.navigate("tanggalTempo/$docId")
                         } else {
                             Log.e("LihatJatuhTempo", "docId NULL atau kosong")
                         }

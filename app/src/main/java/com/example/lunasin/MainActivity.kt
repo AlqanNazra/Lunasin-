@@ -1,8 +1,12 @@
 package com.example.lunasin
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.lunasin.Backend.Data.login_Data.AuthRepository
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
@@ -16,6 +20,14 @@ import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModelFactory
 import com.example.lunasin.theme.LunasinTheme
 import com.example.lunasin.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.lunasin.utils.NotifikasiUtils
+import android.Manifest
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     private lateinit var authViewModel: AuthViewModel
@@ -39,11 +51,39 @@ class MainActivity : ComponentActivity() {
         val piutangFactory = PiutangViewModelFactory(firestoreService)
         piutangViewModel = ViewModelProvider(this, piutangFactory)[PiutangViewModel::class.java]
 
+        // Minta izin notifikasi untuk Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+            }
+        }
+
         setContent {
             LunasinTheme {
                 val startDestination = Screen.Login.route
                 NavGraph(authViewModel, hutangViewModel, piutangViewModel, startDestination)
             }
+            notifikasiHarian()
         }
+    }
+    private fun notifikasiHarian() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<NotifikasiUtils>(
+            repeatInterval = 24,
+            repeatIntervalTimeUnit = TimeUnit.HOURS
+        )
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "daily_notification_work",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }
