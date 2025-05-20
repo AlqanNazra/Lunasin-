@@ -1,10 +1,6 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,11 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import androidx.compose.ui.platform.LocalContext
+import com.example.lunasin.theme.Black
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
-import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
 
@@ -50,7 +44,6 @@ fun PreviewUtangPerhitunganScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
 
     LaunchedEffect(claimSuccess) {
         claimSuccess?.let { hutangId ->
@@ -333,9 +326,8 @@ fun PreviewUtangPerhitunganScreen(
                     ) {
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
-                    val currentHutang = hutang
                     when {
-                        userId == currentHutang?.id_penerima -> {
+                        userId == hutang?.id_penerima -> {
                             Button(
                                 onClick = { /* Dummy button untuk Bayar */ },
                                 modifier = Modifier
@@ -350,33 +342,14 @@ fun PreviewUtangPerhitunganScreen(
                                 Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        currentHutang == null || currentHutang.id_penerima.isNullOrEmpty() -> {
+                        hutang?.id_penerima == null -> {
                             Button(
                                 onClick = {
                                     isClaiming = true
-                                    currentHutang?.docId?.let { hutangId ->
+                                    hutang?.docId?.let { hutangId ->
                                         viewModel.klaimHutang(hutangId, userId)
                                         isClaiming = false
                                         claimSuccess = hutangId
-                                        // Check permission before showing notification
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                            ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.POST_NOTIFICATIONS
-                                            ) != PackageManager.PERMISSION_GRANTED
-                                        ) {
-                                            Toast.makeText(
-                                                context,
-                                                "Izin notifikasi diperlukan untuk menampilkan notifikasi",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        } else {
-                                            NotifikasiUtils.showNotification(
-                                                context = context,
-                                                title = "Hutang Diclaim",
-                                                message = "Hutang telah berhasil diclaim."
-                                            )
-                                        }
                                     }
                                 },
                                 modifier = Modifier
@@ -408,7 +381,7 @@ fun PreviewUtangPerhitunganScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                             ) {
                                 Text(
-                                    text = "Sudah Diklaim oleh ${currentHutang?.id_penerima}",
+                                    text = "Sudah Diklaim oleh ${hutang?.id_penerima}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(8.dp)

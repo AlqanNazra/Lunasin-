@@ -29,12 +29,12 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
     private val firestore = FirebaseFirestore.getInstance()
 
-    fun getHutangById(docId: String) {
+    fun getHutangById(Id_Transaksi: String) {
         viewModelScope.launch {
             try {
-                val document = firestore.collection("hutang").document(docId).get().await()
+                val document = firestore.collection("hutang").document(Id_Transaksi).get().await()
                 if (document.exists()) {
-                    var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(docId = docId)
+                    var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(Id_Transaksi = Id_Transaksi)
                     val tanggalSekarang = LocalDate.now()
 
                     // Hitung denda dan update totalHutang berdasarkan tanggal saat ini
@@ -86,7 +86,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                         }
                         null -> {
                             // Tangani kasus ketika hutangType null
-                            Log.e("HutangViewModel", "HutangType null untuk docId: $docId")
+                            Log.e("HutangViewModel", "HutangType null untuk docId: $Id_Transaksi")
                             hutang
                         }
                     }

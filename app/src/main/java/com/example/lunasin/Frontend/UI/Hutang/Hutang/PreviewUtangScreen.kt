@@ -1,10 +1,6 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -24,11 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import androidx.compose.ui.platform.LocalContext
+import com.example.lunasin.theme.Black
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
-import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
 
@@ -53,7 +48,6 @@ fun PreviewUtangScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
 
     // LaunchedEffect untuk menampilkan snackbar dan refresh data setelah klaim
     LaunchedEffect(claimSuccess) {
@@ -93,8 +87,8 @@ fun PreviewUtangScreen(
                     }
                 },
                 actions = {
-                    // Ikon share untuk QR code atau aksi lainnya
-                    IconButton(onClick = { /* TODO: Implementasi QR code atau aksi share */ }) {
+                    // Tambahkan ikon share sebagai contoh action tambahan
+                    IconButton(onClick = { /* Action share */ }) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "Bagikan",
@@ -295,7 +289,9 @@ fun PreviewUtangScreen(
                                 )
                                 Text(
                                     text = hutang?.statusBayar?.name?.replace("_", " ")?.replaceFirstChar {
-                                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                                        if (it.isLowerCase()) it.titlecase(
+                                            Locale.getDefault()
+                                        ) else it.toString()
                                     } ?: "-",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -311,7 +307,8 @@ fun PreviewUtangScreen(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
@@ -338,7 +335,9 @@ fun PreviewUtangScreen(
 
                         Card(
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)
+                            ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -366,16 +365,17 @@ fun PreviewUtangScreen(
                             .weight(1f)
                             .padding(end = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     ) {
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
 
                     // Validasi untuk tombol Klaim Hutang atau Bayar
-                    val currentHutang = hutang
                     when {
                         // Jika userId sama dengan id_penerima, tampilkan tombol Bayar
-                        userId == currentHutang?.id_penerima -> {
+                        userId == hutang?.id_penerima -> {
                             Button(
                                 onClick = { /* Dummy button untuk Bayar */ },
                                 modifier = Modifier
@@ -391,33 +391,14 @@ fun PreviewUtangScreen(
                             }
                         }
                         // Jika id_penerima null, tampilkan tombol Klaim Hutang
-                        currentHutang == null || currentHutang.id_penerima.isNullOrEmpty() -> {
+                        hutang?.id_penerima == null -> {
                             Button(
                                 onClick = {
                                     isClaiming = true
-                                    currentHutang?.docId?.let { hutangId ->
+                                    hutang?.docId?.let { hutangId ->
                                         viewModel.klaimHutang(hutangId, userId)
                                         isClaiming = false
                                         claimSuccess = hutangId // Memicu LaunchedEffect
-                                        // Check permission before showing notification
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                            ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.POST_NOTIFICATIONS
-                                            ) != PackageManager.PERMISSION_GRANTED
-                                        ) {
-                                            Toast.makeText(
-                                                context,
-                                                "Izin notifikasi diperlukan untuk menampilkan notifikasi",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        } else {
-                                            NotifikasiUtils.showNotification(
-                                                context = context,
-                                                title = "Hutang Diclaim",
-                                                message = "Hutang telah berhasil diclaim."
-                                            )
-                                        }
                                     }
                                 },
                                 modifier = Modifier
@@ -447,10 +428,12 @@ fun PreviewUtangScreen(
                                     .weight(1f)
                                     .padding(start = 8.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                )
                             ) {
                                 Text(
-                                    text = "Sudah Diklaim oleh ${currentHutang?.id_penerima}",
+                                    text = "Sudah Diklaim oleh ${hutang?.id_penerima}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(8.dp)
