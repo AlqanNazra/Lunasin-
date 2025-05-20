@@ -1,7 +1,10 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
 import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -28,9 +31,6 @@ import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.QrCodeDialogButton
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
-import android.os.Build;
-import android.content.pm.PackageManager;
-import android.widget.Toast;
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -301,10 +301,7 @@ fun PreviewPiutangPerhitunganScreen(
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
                     FilledTonalButton(
-                        onClick = {
-                            navController.navigate("list_hutang_screen")
-
-                        },
+                        onClick = { navController.navigate("list_hutang_screen") },
                         modifier = Modifier
                             .weight(1f)
                             .padding(start = 8.dp),
@@ -338,10 +335,10 @@ fun PreviewPiutangPerhitunganScreen(
                 }
             }
 
-            // Tampilkan QR Code Dialog jika showQrCodeDialog bernilai true
+// Tampilkan QR Code Dialog jika showQrCodeDialog bernilai true
             if (showQrCodeDialog && hutang?.docId != null) {
                 QrCodeDialogButton(
-                    data = "lunasin://previewHutang?docId=${hutang.docId}",
+                    data = hutang.docId,
                     onDismissRequest = { showQrCodeDialog = false }
                 )
             }

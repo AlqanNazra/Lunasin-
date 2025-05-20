@@ -24,12 +24,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.example.lunasin.theme.Black
+import androidx.compose.ui.platform.LocalContext
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
-import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -269,7 +268,7 @@ fun PreviewUtangPerhitunganScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
-                                    text = hutang?.bunga?.let { formatRupiah(it) } ?: "Rp0,00",
+                                    text = hutang?.totalDenda?.let { formatRupiah(it) } ?: "Rp0,00",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
@@ -336,7 +335,7 @@ fun PreviewUtangPerhitunganScreen(
                     }
                     val currentHutang = hutang
                     when {
-                        userId == hutang?.id_penerima -> {
+                        userId == currentHutang?.id_penerima -> {
                             Button(
                                 onClick = { /* Dummy button untuk Bayar */ },
                                 modifier = Modifier
@@ -355,29 +354,29 @@ fun PreviewUtangPerhitunganScreen(
                             Button(
                                 onClick = {
                                     isClaiming = true
-                                    hutang?.docId?.let { hutangId ->
+                                    currentHutang?.docId?.let { hutangId ->
                                         viewModel.klaimHutang(hutangId, userId)
                                         isClaiming = false
                                         claimSuccess = hutangId
-                                    }
-                                    // Check permission before showing notification
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                        ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.POST_NOTIFICATIONS
-                                        ) != PackageManager.PERMISSION_GRANTED
-                                    ) {
-                                        Toast.makeText(
-                                            context,
-                                            "Izin notifikasi diperlukan untuk menampilkan notifikasi",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    } else {
-                                        NotifikasiUtils.showNotification(
-                                            context = context,
-                                            title = "Hutang Diclaim",
-                                            message = "Hutang telah berhasil diclaim."
-                                        )
+                                        // Check permission before showing notification
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                            ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.POST_NOTIFICATIONS
+                                            ) != PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            Toast.makeText(
+                                                context,
+                                                "Izin notifikasi diperlukan untuk menampilkan notifikasi",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            NotifikasiUtils.showNotification(
+                                                context = context,
+                                                title = "Hutang Diclaim",
+                                                message = "Hutang telah berhasil diclaim."
+                                            )
+                                        }
                                     }
                                 },
                                 modifier = Modifier
@@ -409,7 +408,7 @@ fun PreviewUtangPerhitunganScreen(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                             ) {
                                 Text(
-                                    text = "Sudah Diklaim oleh ${hutang?.id_penerima}",
+                                    text = "Sudah Diklaim oleh ${currentHutang?.id_penerima}",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(8.dp)
