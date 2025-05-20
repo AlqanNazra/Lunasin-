@@ -11,9 +11,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_logo"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/ic_launcher_foreground"
         android:supportsRtl="true"
         android:theme="@style/Theme.Lunasin"
         tools:targetApi="31"
@@ -22,14 +22,16 @@
         <!-- Activity untuk Google Sign-In -->
         <activity android:name=".Frontend.UI.Hutang.Qrcode.QrScannerActivity" />
         <activity
-            android:name=".MainActivity"
+            android:name=".Frontend.UI.splashscreen.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.Lunasin">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </activity>
+        <activity android:name=".MainActivity" />
     </application>
 
 </manifest>

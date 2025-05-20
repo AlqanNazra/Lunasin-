@@ -21,14 +21,13 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import kotlin.math.log
 import com.example.lunasin.Backend.Model.Tempo
-
+import kotlinx.coroutines.tasks.await
 
 class NotifikasiUtils(
     context: Context,
@@ -37,140 +36,163 @@ class NotifikasiUtils(
 
     override suspend fun doWork(): Result {
         Log.d("NotifikasiUtils", "Worker dijalankan pada ${LocalDateTime.now()}")
-        val db = FirebaseFirestore.getInstance()
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: run {
-            Log.e("NotifikasiUtils", "User tidak login")
-            return Result.failure()
+        return checkAndSendNotifications(applicationContext)
+    }
+
+    companion object {
+        @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+        fun showNotification(context: Context, title: String, message: String) {
+            val channelId = "default_channel_id"
+            val notificationManager = NotificationManagerCompat.from(context)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Informasi Notifikasi",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Channel untuk notifikasi jatuh tempo dan klaim"
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+
+            val pendingIntent = PendingIntent.getActivity(
+                context, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+
+            notificationManager.notify(System.currentTimeMillis().toInt(), notification)
         }
 
-        val hariIni = LocalDate.now()
-        val besok = hariIni.plusDays(1)
-        val lusa = hariIni.plusDays(2)
-        Log.d("NotifikasiUtils", "Hari ini: $hariIni, Besok: $besok, Lusa: $lusa")
+        suspend fun checkAndSendNotifications(context: Context): Result {
+            Log.d("NotifikasiUtils", "Memeriksa notifikasi manual pada ${LocalDateTime.now()}")
+            val db = FirebaseFirestore.getInstance()
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+                Log.e("NotifikasiUtils", "User tidak login")
+                return Result.failure()
+            }
 
-        try {
-            db.collection("hutang")
-                .whereEqualTo("id_penerima", userId)
-                .get()
-                .addOnSuccessListener { documents ->
-                    Log.d("NotifikasiUtils", "Jumlah dokumen ditemukan: ${documents.size()}")
-                    if (documents.isEmpty) {
-                        Log.d("NotifikasiUtils", "Tidak ada hutang untuk userId: $userId")
+            val hariIni = LocalDate.now()
+            val besok = hariIni.plusDays(1)
+            val lusa = hariIni.plusDays(2)
+            Log.d("NotifikasiUtils", "Hari ini: $hariIni, Besok: $besok, Lusa: $lusa")
+
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Log.e("NotifikasiUtils", "Izin POST_NOTIFICATIONS tidak diberikan")
+                return Result.failure()
+            }
+
+            try {
+                val documents = db.collection("hutang")
+                    .whereEqualTo("id_penerima", userId)
+                    .get()
+                    .await()
+
+                Log.d("NotifikasiUtils", "Jumlah dokumen ditemukan: ${documents.size()}")
+                if (documents.isEmpty) {
+                    Log.d("NotifikasiUtils", "Tidak ada hutang untuk userId: $userId")
+                    showNotification(context, "Pengingat Hutang", "Tidak ada hutang yang jatuh tempo.")
+                    return Result.success()
+                }
+
+                for (doc in documents) {
+                    val tanggal = doc.getString("tanggalBayar") ?: continue
+                    val namaPinjaman = doc.getString("namapinjaman") ?: "Tidak diketahui"
+                    Log.d("NotifikasiUtils", "Dokumen: ${doc.data}")
+
+                    try {
+                        val tenggatWaktu = LocalDate.parse(tanggal, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                        Log.d("NotifikasiUtils", "Tenggat waktu: $tenggatWaktu untuk $namaPinjaman")
+                        if (tenggatWaktu == hariIni || tenggatWaktu == besok || tenggatWaktu == lusa) {
+                            val message = "Tenggat waktu pembayaran \"$namaPinjaman\" adalah $tenggatWaktu."
+                            showNotification(context, "Pengingat Pembayaran", message)
+                            sendFCM(context, userId, "Pengingat Pembayaran", message)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NotifikasiUtils", "Error parsing tanggalBayar: ${e.message}")
+                        continue
                     }
 
-                    val hasPermission = ContextCompat.checkSelfPermission(
-                        applicationContext,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED
+                    val listTempoRaw = doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
+                    val listTempo = listTempoRaw.map { Tempo.fromMap(it) }
 
-                    if (!hasPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        Log.e("NotifikasiUtils", "Izin POST_NOTIFICATIONS tidak diberikan")
-                        return@addOnSuccessListener
-                    }
-
-                    for (doc in documents) {
-                        val tanggal = doc.getString("tanggalBayar") ?: continue
-                        val namaPinjaman = doc.getString("namapinjaman") ?: "Tidak diketahui"
-                        Log.d("NotifikasiUtils", "Dokumen: ${doc.data}")
-
+                    for (tempo in listTempo) {
                         try {
-                            val tenggatWaktu = LocalDate.parse(tanggal, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                            Log.d("NotifikasiUtils", "Tenggat waktu: $tenggatWaktu untuk $namaPinjaman")
-                            if (tenggatWaktu == hariIni || tenggatWaktu == besok || tenggatWaktu == lusa) {
-                                showNotification(
-                                    applicationContext,
-                                    "Pengingat Pembayaran",
-                                    "Tenggat waktu pembayaran \"$namaPinjaman\" adalah $tenggatWaktu."
-                                )
+                            val tenggatTempo = LocalDate.parse(
+                                tempo.tanggalTempo,
+                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                            )
+                            Log.d("NotifikasiUtils", "Tenggat tempo: $tenggatTempo untuk angsuran ke-${tempo.angsuranKe}")
+                            if (tenggatTempo == hariIni || tenggatTempo == besok || tenggatTempo == lusa) {
+                                val message = "Tenggat waktu pembayaran ke-${tempo.angsuranKe} untuk \"$namaPinjaman\" jatuh tempo pada $tenggatTempo."
+                                showNotification(context, "Pengingat Angsuran", message)
+                                sendFCM(context, userId, "Pengingat Angsuran", message)
                             }
                         } catch (e: Exception) {
-                            Log.e("NotifikasiUtils", "Error parsing tanggalBayar: ${e.message}")
+                            Log.e("NotifikasiUtils", "Error parsing tanggalTempo: ${e.message}")
                             continue
-                        }
-
-                        val listTempoRaw = doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
-                        val listTempo = listTempoRaw.map { Tempo.fromMap(it) }
-
-                        for (tempo in listTempo) {
-                            try {
-                                val tenggatTempo = LocalDate.parse(
-                                    tempo.tanggalTempo,
-                                    DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                                )
-                                Log.d("NotifikasiUtils", "Tenggat tempo: $tenggatTempo untuk angsuran ke-${tempo.angsuranKe}")
-                                if (tenggatTempo == hariIni || tenggatTempo == besok || tenggatTempo == lusa) {
-                                    showNotification(
-                                        applicationContext,
-                                        "Pengingat Angsuran",
-                                        "Tenggat waktu pembayaran ke-${tempo.angsuranKe} untuk \"$namaPinjaman\" jatuh tempo pada $tenggatTempo."
-                                    )
-                                }
-                            } catch (e: Exception) {
-                                Log.e("NotifikasiUtils", "Error parsing tanggalTempo: ${e.message}")
-                                continue
-                            }
                         }
                     }
                 }
 
-            return Result.success()
-        } catch (e: Exception) {
-            Log.e("NotifikasiUtils", "Error umum: ${e.message}")
-            return Result.failure()
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    private fun showNotification(context: Context, title: String, message: String) {
-        val channelId = "default_channel_id"
-        val notificationManager = NotificationManagerCompat.from(context)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Informasi Notifikasi",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Channel untuk notifikasi jatuh tempo dan klaim"
+                return Result.success()
+            } catch (e: Exception) {
+                Log.e("NotifikasiUtils", "Error umum: ${e.message}")
+                return Result.failure()
             }
-            notificationManager.createNotificationChannel(channel)
         }
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        fun sendFCM(context: Context, userId: String, title: String, message: String) {
+            try {
+                val payload = JSONObject().apply {
+                    put("to", "/topics/$userId") // Kirim ke topik berdasarkan userId
+                    put("notification", JSONObject().apply {
+                        put("title", title)
+                        put("body", message)
+                    })
+                    put("data", JSONObject().apply {
+                        put("click_action", "OPEN_MAIN_ACTIVITY")
+                    })
+                }
+
+                val url = URL("https://fcm.googleapis.com/fcm/send")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Authorization", "key=YOUR_SERVER_KEY") // Ganti dengan FCM Server Key
+
+                val outputWriter = OutputStreamWriter(conn.outputStream)
+                outputWriter.write(payload.toString())
+                outputWriter.flush()
+                outputWriter.close()
+
+                val responseCode = conn.responseCode
+                Log.d("NotifikasiUtils", "FCM response code: $responseCode")
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    Log.e("NotifikasiUtils", "Gagal mengirim FCM: $responseCode")
+                }
+            } catch (e: Exception) {
+                Log.e("NotifikasiUtils", "Error mengirim FCM: ${e.message}")
+            }
         }
-
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_notification)// ganti dengan ikon notifikasi kamu
-            .setContentTitle(title)
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .build()
-
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
-    }
-
-
-    fun sendFCM(payload: JSONObject){
-        val url = URL("https://fcm.googleapis.com/fcm/send")
-        val conn = url.openConnection() as  HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.doOutput = true
-        conn.setRequestProperty("Content-Type", "application/json")
-        conn.setRequestProperty("Authorization", "key=YOUR_SERVER_KEY")
-
-        val outputWriter = OutputStreamWriter(conn.outputStream)
-        outputWriter.write(payload.toString())
-        outputWriter.flush()
-        outputWriter.close()
-
-        conn.responseCode
     }
 }

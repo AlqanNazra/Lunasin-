@@ -1,6 +1,10 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,11 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.lunasin.theme.Black
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
+import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +55,7 @@ fun PreviewUtangScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     // LaunchedEffect untuk menampilkan snackbar dan refresh data setelah klaim
     LaunchedEffect(claimSuccess) {
@@ -373,6 +381,7 @@ fun PreviewUtangScreen(
                     }
 
                     // Validasi untuk tombol Klaim Hutang atau Bayar
+                    val currentHutang = hutang
                     when {
                         // Jika userId sama dengan id_penerima, tampilkan tombol Bayar
                         userId == hutang?.id_penerima -> {
@@ -391,7 +400,7 @@ fun PreviewUtangScreen(
                             }
                         }
                         // Jika id_penerima null, tampilkan tombol Klaim Hutang
-                        hutang?.id_penerima == null -> {
+                        currentHutang == null || currentHutang.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = {
                                     isClaiming = true
@@ -399,6 +408,25 @@ fun PreviewUtangScreen(
                                         viewModel.klaimHutang(hutangId, userId)
                                         isClaiming = false
                                         claimSuccess = hutangId // Memicu LaunchedEffect
+                                    }
+                                    // Check permission before showing notification
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) != PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        Toast.makeText(
+                                            context,
+                                            "Izin notifikasi diperlukan untuk menampilkan notifikasi",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        NotifikasiUtils.showNotification(
+                                            context = context,
+                                            title = "Hutang Diclaim",
+                                            message = "Hutang telah berhasil diclaim."
+                                        )
                                     }
                                 },
                                 modifier = Modifier

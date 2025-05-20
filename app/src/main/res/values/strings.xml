@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Lunasin</string>
+    <string name="splash_image_desc">Splash screen logo description</string>
 </resources>

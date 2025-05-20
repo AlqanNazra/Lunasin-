@@ -1,5 +1,6 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
+import android.Manifest
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -17,13 +18,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
+import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.QrCodeDialogButton
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
+import android.os.Build;
+import android.content.pm.PackageManager;
+import android.widget.Toast;
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +50,7 @@ fun PreviewPiutangPerhitunganScreen(
     val hutangState by viewModel.hutangState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showQrCodeDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current // Get context using LocalContext
 
     Scaffold(
         snackbarHost = {
@@ -293,7 +301,10 @@ fun PreviewPiutangPerhitunganScreen(
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
                     FilledTonalButton(
-                        onClick = { navController.navigate("list_hutang_screen") },
+                        onClick = {
+                            navController.navigate("list_hutang_screen")
+
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .padding(start = 8.dp),
@@ -326,13 +337,14 @@ fun PreviewPiutangPerhitunganScreen(
                     Text("Lihat Jatuh Tempo", style = MaterialTheme.typography.labelLarge)
                 }
             }
-        }
-        // Tampilkan QR Code Dialog jika showQrCodeDialog bernilai true
-        if (showQrCodeDialog && hutang?.docId != null) {
-            QrCodeDialogButton(
-                data = "lunasin://previewHutang?docId=${hutang.docId}",
-                onDismissRequest = { showQrCodeDialog = false }
-            )
+
+            // Tampilkan QR Code Dialog jika showQrCodeDialog bernilai true
+            if (showQrCodeDialog && hutang?.docId != null) {
+                QrCodeDialogButton(
+                    data = "lunasin://previewHutang?docId=${hutang.docId}",
+                    onDismissRequest = { showQrCodeDialog = false }
+                )
+            }
         }
     }
 }

@@ -231,7 +231,7 @@ fun TemanPiutangScreen(
                             return@Button
                         }
 
-                        val pinjamanValue = nominalPinjaman.toDoubleOrNull()
+                        val pinjamanValue = nominalPinjaman.replace(".", "").replace(",", "").toDoubleOrNull()
 
                         if (namaPinjaman.isEmpty() || pinjamanValue == null) {
                             Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()

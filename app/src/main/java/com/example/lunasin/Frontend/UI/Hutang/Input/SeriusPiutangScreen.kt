@@ -239,8 +239,7 @@ fun SeriusPiutangScreen(
                             return@Button
                         }
 
-
-                        val pinjamanValue = nominalPinjaman.toDoubleOrNull()
+                        val pinjamanValue = nominalPinjaman.replace(".", "").replace(",", "").toDoubleOrNull()
                         val bungaValue = bunga.toDoubleOrNull()
                         val lamaPinjamanValue = lamaPinjaman.toIntOrNull()
 

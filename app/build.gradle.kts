@@ -21,6 +21,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -43,12 +44,11 @@ android {
 
 dependencies {
     implementation(libs.firebase.storage.ktx)
-
     //Jetpack Compose
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
-
+    implementation ("androidx.appcompat:appcompat:1.6.1")
     // Material Design 3
     implementation("androidx.compose.material3:material3")
 
@@ -114,5 +114,11 @@ dependencies {
 
     //Notifikasi
     implementation ("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    implementation("com.google.firebase:firebase-analytics")
+
+    //Splash Screen
+    implementation ("androidx.core:core-splashscreen:1.0.0")
 
 }

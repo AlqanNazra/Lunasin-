@@ -1,6 +1,10 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,11 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.lunasin.theme.Black
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
+import com.example.lunasin.utils.NotifikasiUtils
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +51,7 @@ fun PreviewUtangPerhitunganScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     LaunchedEffect(claimSuccess) {
         claimSuccess?.let { hutangId ->
@@ -261,7 +269,7 @@ fun PreviewUtangPerhitunganScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
-                                    text = hutang?.totalDenda?.let { formatRupiah(it) } ?: "Rp0,00",
+                                    text = hutang?.bunga?.let { formatRupiah(it) } ?: "Rp0,00",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
@@ -326,6 +334,7 @@ fun PreviewUtangPerhitunganScreen(
                     ) {
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
+                    val currentHutang = hutang
                     when {
                         userId == hutang?.id_penerima -> {
                             Button(
@@ -342,7 +351,7 @@ fun PreviewUtangPerhitunganScreen(
                                 Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        hutang?.id_penerima == null -> {
+                        currentHutang == null || currentHutang.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = {
                                     isClaiming = true
@@ -350,6 +359,25 @@ fun PreviewUtangPerhitunganScreen(
                                         viewModel.klaimHutang(hutangId, userId)
                                         isClaiming = false
                                         claimSuccess = hutangId
+                                    }
+                                    // Check permission before showing notification
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) != PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        Toast.makeText(
+                                            context,
+                                            "Izin notifikasi diperlukan untuk menampilkan notifikasi",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        NotifikasiUtils.showNotification(
+                                            context = context,
+                                            title = "Hutang Diclaim",
+                                            message = "Hutang telah berhasil diclaim."
+                                        )
                                     }
                                 },
                                 modifier = Modifier

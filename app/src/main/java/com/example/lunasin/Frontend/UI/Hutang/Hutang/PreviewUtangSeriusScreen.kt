@@ -1,6 +1,10 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +26,9 @@ import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.example.lunasin.utils.NotifikasiUtils
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +51,7 @@ fun PreviewUtangSeriusScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     LaunchedEffect(claimSuccess) {
         claimSuccess?.let { hutangId ->
@@ -398,6 +406,7 @@ fun PreviewUtangSeriusScreen(
                     ) {
                         Text("Kembali", style = MaterialTheme.typography.labelLarge)
                     }
+                    val currentHutang = hutang
                     when {
                         userId == hutang?.id_penerima -> {
                             Button(
@@ -414,7 +423,7 @@ fun PreviewUtangSeriusScreen(
                                 Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        hutang?.id_penerima == null -> {
+                        currentHutang == null || currentHutang.id_penerima.isNullOrEmpty() ->  {
                             Button(
                                 onClick = {
                                     isClaiming = true
@@ -422,6 +431,24 @@ fun PreviewUtangSeriusScreen(
                                         viewModel.klaimHutang(hutangId, userId)
                                         isClaiming = false
                                         claimSuccess = hutangId
+                                    }
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) != PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        Toast.makeText(
+                                            context,
+                                            "Izin notifikasi diperlukan untuk menampilkan notifikasi",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        NotifikasiUtils.showNotification(
+                                            context = context,
+                                            title = "Hutang Diclaim",
+                                            message = "Hutang telah berhasil diclaim."
+                                        )
                                     }
                                 },
                                 modifier = Modifier

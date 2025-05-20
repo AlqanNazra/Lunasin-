@@ -192,7 +192,16 @@ fun PerhitunganPiutangScreen(
 
             OutlinedTextField(
                 value = totalDenda,
-                onValueChange = { totalDenda = it },
+                onValueChange = { input ->
+                    val cleanInput = input.replace(".", "").filter { it.isDigit() }
+
+                    nominalValue = cleanInput
+                    totalDenda = if (cleanInput.isNotEmpty()) {
+                        NumberFormat.getInstance(Locale("in", "ID")).format(cleanInput.toLong())
+                    } else {
+                        ""
+                    }
+                },
                 label = { Text("Denda Tetap (Rp)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -243,8 +252,8 @@ fun PerhitunganPiutangScreen(
                             return@Button
                         }
 
-                        val pinjamanValue = nominalPinjaman.toDoubleOrNull()
-                        val dendaValue = totalDenda.toDoubleOrNull()
+                        val pinjamanValue = nominalPinjaman.replace(".", "").replace(",", "").toDoubleOrNull()
+                        val dendaValue = totalDenda.replace(".", "").replace(",", "").toDoubleOrNull()
 
                         if (namaPinjaman.isEmpty() || pinjamanValue == null || dendaValue == null) {
                             Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()
