@@ -100,7 +100,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        bottomBar = {  },
+        bottomBar = { BottomNavigationBar(navController) },
         backgroundColor = MaterialTheme.colorScheme.primary
     ) { paddingValues ->
         Box(
@@ -384,3 +384,70 @@ fun HutangItemMini(hutang: Hutang) {
         }
     }
 }
+
+@Composable
+fun BottomNavigationBar(navController: NavController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    BottomNavigation(
+        backgroundColor = Color.White,
+        elevation = 8.dp
+    ) {
+        val items = listOf(
+            BottomNavItem("Home", R.drawable.ic_home, "home_screen"),
+            BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
+            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
+            BottomNavItem("Profile", R.drawable.ic_profile, "profile_screen")
+        )
+
+        items.forEach { item ->
+            val isSelected = currentRoute == item.route
+            BottomNavigationItem(
+                icon = {
+                    Box(
+                        modifier = if (isSelected) {
+                            Modifier
+                                .size(36.dp) // Ukuran lebih besar untuk background bulat
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
+                                .padding(6.dp) // Padding agar ikon tidak terlalu besar
+                        } else {
+                            Modifier.size(24.dp)
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = item.icon),
+                            contentDescription = item.label,
+                            tint = if (isSelected) Color.White else Color.Gray,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                },
+                label = {
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+                    )
+                },
+                selected = isSelected,
+                onClick = {
+                    navController.navigate(item.route) {
+                        // Hindari stack berulang
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+// Data class untuk item navigasi
+data class BottomNavItem(val label: String, val icon: Int, val route: String)
