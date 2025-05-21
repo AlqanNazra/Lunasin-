@@ -342,7 +342,7 @@ fun PreviewUtangPerhitunganScreen(
                                 Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        hutang?.id_penerima == null -> {
+                        hutang?.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = {
                                     isClaiming = true

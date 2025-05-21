@@ -1,4 +1,4 @@
-package com.jtk.demofcm
+package com.example.lunasin.utils.Notifikasi
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

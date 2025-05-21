@@ -12,19 +12,19 @@ import com.example.lunasin.R
 class ReminderWorker(appContext: Context, workerParams: WorkerParameters) : Worker(appContext, workerParams) {
 
     companion object {
-        const val CHANNEL_ID = "reminder_channel"
-        const val NOTIFICATION_ID = 1001
+        private const val CHANNEL_ID = "reminder_channel"
     }
 
     override fun doWork(): Result {
         val title = inputData.getString("title") ?: "Pengingat Hutang"
-        val message = inputData.getString("message") ?: "Jatuh tempo angsuran ke-${inputData.getInt("angsuranKe", 0)}"
+        val message = inputData.getString("message") ?: "Pengingat jatuh tempo hutang."
+        val angsuranKe = inputData.getInt("angsuranKe", 0)
 
-        showNotification(title, message)
+        showNotification(title, message, angsuranKe)
         return Result.success()
     }
 
-    private fun showNotification(title: String, message: String) {
+    private fun showNotification(title: String, message: String, angsuranKe: Int) {
         val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -46,6 +46,6 @@ class ReminderWorker(appContext: Context, workerParams: WorkerParameters) : Work
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(NOTIFICATION_ID, notification)
+        notificationManager.notify(angsuranKe + 1000, notification)
     }
 }

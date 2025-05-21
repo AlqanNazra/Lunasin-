@@ -91,25 +91,25 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     val scanner = GmsBarcodeScanning.getClient(context, options)
                     scanner.startScan()
                         .addOnSuccessListener { barcode ->
-                            val docId = barcode.rawValue?.trim()
-                            if (!docId.isNullOrEmpty()) {
-                                Log.d("QRScan", "Scanned docId: $docId") // Tambahkan log di sini
+                            val idTransaksi = barcode.rawValue?.trim()
+                            if (!idTransaksi.isNullOrEmpty()) {
+                                Log.d("QRScan", "Scanned docId: $idTransaksi") // Tambahkan log di sini
                                 coroutineScope.launch {
                                     isLoading = true
-                                    hutangViewModel.getHutangById(docId)
+                                    hutangViewModel.getHutangByIdTransaksi(idTransaksi)
                                     // Setelah data dimuat, navigasi ke layar preview sesuai hutangType
                                     hutangViewModel.hutangState.value?.let { hutang ->
                                         when (hutang.hutangType) {
-                                            HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$docId")
-                                            HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$docId")
-                                            HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$docId")
+                                            HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$idTransaksi")
+                                            HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$idTransaksi")
+                                            HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$idTransaksi")
                                             else -> {
                                                 Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
-                                                navController.navigate("hutang_teman_preview/$docId") // Fallback
+                                                navController.navigate("hutang_teman_preview/$idTransaksi") // Fallback
                                             }
                                         }
                                     } ?: run {
-                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $docId") // Log error
+                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $idTransaksi") // Log error
                                         snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
                                     }
                                     isLoading = false
@@ -232,28 +232,32 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 Button(
                     onClick = {
                         if (searchId.isNotEmpty()) {
+                            val cleanedSearchId = searchId.trim()
                             isLoading = true
-                            hutangViewModel.getHutangById(searchId)
-                            Log.d("SearchBar", "Mencari hutang dengan ID: $searchId")
-                            // Pastikan isLoading diatur ulang setelah proses selesai
+                            hutangViewModel.getHutangByIdTransaksi(cleanedSearchId)
+                            Log.d("SearchBar", "Mencari hutang dengan Id_Transaksi: $cleanedSearchId")
                             coroutineScope.launch {
-                                // Tunggu hingga getHutangById selesai (opsional, tergantung kebutuhan)
-                                delay(2000) // Timeout sementara untuk debugging
-                                isLoading = false
-                                hutangViewModel.hutangState.value?.let { hutang ->
-                                    when (hutang.hutangType) {
-                                        HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$searchId")
-                                        HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$searchId")
-                                        HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$searchId")
-                                        else -> navController.navigate("hutang_teman_preview/$searchId")
+                                var hasNavigated = false
+                                hutangViewModel.hutangState.collect { hutang ->
+                                    if (!hasNavigated) {
+                                        isLoading = false
+                                        hutang?.let {
+                                            when (it.hutangType) {
+                                                HutangType.TEMAN -> navController.navigate("hutang_teman_preview/${it.docId}")
+                                                HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/${it.docId}")
+                                                HutangType.SERIUS -> navController.navigate("hutang_serius_preview/${it.docId}")
+                                                else -> navController.navigate("hutang_teman_preview/${it.docId}")
+                                            }
+                                            hasNavigated = true
+                                        } ?: run {
+                                            snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
+                                        }
                                     }
-                                } ?: run {
-                                    snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
                                 }
                             }
                         } else {
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Masukkan ID Hutang")
+                                snackbarHostState.showSnackbar("Masukkan ID Transaksi")
                             }
                         }
                     },
@@ -278,7 +282,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Dokumen Terakhir Dibuka (Recent Search)
-                val currentUserId = hutangViewModel.currentUserId
+                val currentUserId by hutangViewModel.currentUserId.collectAsState()
                 recentSearch?.let { hutang ->
                     // Hanya tampilkan jika id_penerima == currentUserId (hutang) dan bukan piutang (userId != currentUserId)
                     if (hutang.id_penerima == currentUserId && hutang.userId != currentUserId) {
