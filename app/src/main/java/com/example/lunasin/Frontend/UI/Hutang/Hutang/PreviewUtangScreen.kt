@@ -1,6 +1,7 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,8 @@ import com.example.lunasin.theme.Black
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
+import androidx.compose.ui.platform.LocalContext
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,12 +38,15 @@ fun PreviewUtangScreen(
     docId: String,
     userId: String
 ) {
+    val context = LocalContext.current
     Log.d("PREVIEW_UTANG_SCREEN", "docId: $docId, userId: $userId")
 
     // Ambil data hutang berdasarkan docId
     LaunchedEffect(docId) {
         if (docId.isNotEmpty()) {
-            viewModel.getHutangById(docId)
+            viewModel.getHutangById(docId) { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -48,6 +54,8 @@ fun PreviewUtangScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+
+
 
     // LaunchedEffect untuk menampilkan snackbar dan refresh data setelah klaim
     LaunchedEffect(claimSuccess) {
@@ -57,7 +65,10 @@ fun PreviewUtangScreen(
                 actionLabel = "OK",
                 duration = SnackbarDuration.Short
             )
-            viewModel.getHutangById(hutangId) // Refresh data
+            viewModel.getHutangById(hutangId) { errorMessage ->
+                Log.e("PreviewUtang", "Gagal memuat ulang hutang: $errorMessage")
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -390,15 +401,25 @@ fun PreviewUtangScreen(
                                 Text("Bayar", style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        // Jika id_penerima null, tampilkan tombol Klaim Hutang
                         hutang?.id_penerima.isNullOrEmpty() -> {
                             Button(
                                 onClick = {
                                     isClaiming = true
-                                    hutang?.docId?.let { hutangId ->
-                                        viewModel.klaimHutang(hutangId, userId)
+                                    hutang?.let { hutangData ->
+                                        viewModel.klaimHutang(hutangData) { success, errorMessage ->
+                                            isClaiming = false
+                                            if (success) {
+                                                claimSuccess = hutangData.docId
+                                                Log.d("PreviewUtang", "Klaim berhasil untuk docId: ${hutangData.docId}")
+                                            } else {
+                                                Log.e("PreviewUtang", "Klaim gagal: $errorMessage")
+                                                Toast.makeText(context, errorMessage ?: "Gagal mengklaim hutang", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    } ?: run {
                                         isClaiming = false
-                                        claimSuccess = hutangId // Memicu LaunchedEffect
+                                        Log.e("PreviewUtang", "Objek hutang null")
+                                        Toast.makeText(context, "Data hutang tidak valid", Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 modifier = Modifier

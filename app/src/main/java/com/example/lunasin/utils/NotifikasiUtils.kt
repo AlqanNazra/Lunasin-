@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -24,15 +25,63 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.core.content.ContextCompat
+import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.Tempo
 import kotlinx.coroutines.tasks.await
+import com.example.lunasin.Backend.Model.HutangType
+import com.example.lunasin.Backend.Model.StatusBayar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.work.Data
 
 class NotifikasiUtils(
     context: Context,
     workerParameters: WorkerParameters
 ) : CoroutineWorker(context, workerParameters) {
+
+    private fun checkNearestDueDebt(context: Context, firestore: FirebaseFirestore, onResult: (String) -> Unit) {
+        firestore.collection("hutang")
+            .whereEqualTo("statusBayar", StatusBayar.BELUM_LUNAS.name)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("id", "ID"))
+                val currentTime = System.currentTimeMillis()
+                val debts = snapshot.documents.mapNotNull { doc ->
+                    doc.data?.let { data ->
+                        Hutang.fromMap(data as Map<String, Any>)
+                    }
+                }
+
+                // Filter hutang dengan jatuh tempo di masa depan dan urutkan berdasarkan waktu jatuh tempo
+                val nearestDebt = debts
+                    .filter { debt ->
+                        try {
+                            val dueDate = dateFormat.parse(debt.tanggalJatuhTempo)
+                            dueDate?.time ?: Long.MAX_VALUE > currentTime
+                        } catch (e: Exception) {
+                            false
+                        }
+                    }
+                    .minByOrNull { debt ->
+                        try {
+                            dateFormat.parse(debt.tanggalJatuhTempo)?.time ?: Long.MAX_VALUE
+                        } catch (e: Exception) {
+                            Long.MAX_VALUE
+                        }
+                    }
+
+                if (nearestDebt == null) {
+                    onResult("Tidak ada hutang dengan jatuh tempo terdekat.")
+                } else {
+                    onResult("Hutang terdekat: ${nearestDebt.namapinjaman}, jatuh tempo pada ${nearestDebt.tanggalJatuhTempo}")
+                }
+            }
+            .addOnFailureListener { e ->
+                onResult("Gagal memeriksa hutang: ${e.message}")
+            }
+    }
 
     override suspend fun doWork(): Result {
         Log.d("NotifikasiUtils", "Worker dijalankan pada ${LocalDateTime.now()}")
@@ -41,7 +90,7 @@ class NotifikasiUtils(
 
     companion object {
         @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-        fun showNotification(context: Context, title: String, message: String) {
+        fun showNotification(context: Context, title: String, message: String, hutangId: String? = null) {
             val channelId = "default_channel_id"
             val notificationManager = NotificationManagerCompat.from(context)
 
@@ -58,6 +107,9 @@ class NotifikasiUtils(
 
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                if (hutangId != null) {
+                    putExtra("hutangId", hutangId)
+                }
             }
 
             val pendingIntent = PendingIntent.getActivity(
@@ -77,8 +129,10 @@ class NotifikasiUtils(
             notificationManager.notify(System.currentTimeMillis().toInt(), notification)
         }
 
+
         suspend fun checkAndSendNotifications(context: Context): Result {
             Log.d("NotifikasiUtils", "Memeriksa notifikasi manual pada ${LocalDateTime.now()}")
+
             val db = FirebaseFirestore.getInstance()
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: run {
                 Log.e("NotifikasiUtils", "User tidak login")
@@ -88,7 +142,6 @@ class NotifikasiUtils(
             val hariIni = LocalDate.now()
             val besok = hariIni.plusDays(1)
             val lusa = hariIni.plusDays(2)
-            Log.d("NotifikasiUtils", "Hari ini: $hariIni, Besok: $besok, Lusa: $lusa")
 
             val hasPermission = ContextCompat.checkSelfPermission(
                 context,
@@ -100,76 +153,78 @@ class NotifikasiUtils(
                 return Result.failure()
             }
 
-            try {
+            return try {
                 val documents = db.collection("hutang")
                     .whereEqualTo("id_penerima", userId)
                     .get()
                     .await()
 
-                Log.d("NotifikasiUtils", "Jumlah dokumen ditemukan: ${documents.size()}")
-                if (documents.isEmpty) {
-                    Log.d("NotifikasiUtils", "Tidak ada hutang untuk userId: $userId")
-                    showNotification(context, "Pengingat Hutang", "Tidak ada hutang yang jatuh tempo.")
-                    return Result.success()
-                }
+                var hasNotifications = false
 
                 for (doc in documents) {
-                    val tanggal = doc.getString("tanggalBayar") ?: continue
-                    val namaPinjaman = doc.getString("namapinjaman") ?: "Tidak diketahui"
-                    Log.d("NotifikasiUtils", "Dokumen: ${doc.data}")
-
-                    try {
-                        val tenggatWaktu = LocalDate.parse(tanggal, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                        Log.d("NotifikasiUtils", "Tenggat waktu: $tenggatWaktu untuk $namaPinjaman")
-                        if (tenggatWaktu == hariIni || tenggatWaktu == besok || tenggatWaktu == lusa) {
-                            val message = "Tenggat waktu pembayaran \"$namaPinjaman\" adalah $tenggatWaktu."
-                            showNotification(context, "Pengingat Pembayaran", message)
-                            sendFCM(context, userId, "Pengingat Pembayaran", message)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("NotifikasiUtils", "Error parsing tanggalBayar: ${e.message}")
-                        continue
+                    val tanggalJatuhTempo = doc.getString("tanggalJatuhTempo") ?: continue
+                    val namapinjaman = doc.getString("namapinjaman") ?: "Tidak diketahui"
+                    val hutangType = doc.getString("hutangType")?.let {
+                        try { HutangType.valueOf(it) } catch (e: Exception) { null }
                     }
 
-                    val listTempoRaw = doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
-                    val listTempo = listTempoRaw.map { Tempo.fromMap(it) }
+                    try {
+                        val tenggatWaktu = LocalDate.parse(tanggalJatuhTempo, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        if (tenggatWaktu in listOf(hariIni, besok, lusa)) {
+                            val message = "Tenggat waktu pembayaran \"$namapinjaman\" adalah $tenggatWaktu."
+                            showNotification(context, "Pengingat Pembayaran", message)
+                            sendFCM(context, userId, "Pengingat Pembayaran", message)
+                            hasNotifications = true
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NotifikasiUtils", "Error parsing tanggalJatuhTempo: ${e.message}")
+                    }
 
-                    for (tempo in listTempo) {
-                        try {
-                            val tenggatTempo = LocalDate.parse(
-                                tempo.tanggalTempo,
-                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
-                            )
-                            Log.d("NotifikasiUtils", "Tenggat tempo: $tenggatTempo untuk angsuran ke-${tempo.angsuranKe}")
-                            if (tenggatTempo == hariIni || tenggatTempo == besok || tenggatTempo == lusa) {
-                                val message = "Tenggat waktu pembayaran ke-${tempo.angsuranKe} untuk \"$namaPinjaman\" jatuh tempo pada $tenggatTempo."
-                                showNotification(context, "Pengingat Angsuran", message)
-                                sendFCM(context, userId, "Pengingat Angsuran", message)
+                    if (hutangType == HutangType.SERIUS) {
+                        val listTempoRaw = doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
+                        val listTempo = listTempoRaw.map { Tempo.fromMap(it) }
+
+                        for (tempo in listTempo) {
+                            try {
+                                val tenggatTempo = LocalDate.parse(tempo.tanggalTempo, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                if (tenggatTempo in listOf(hariIni, besok, lusa)) {
+                                    val message = "Tenggat pembayaran ke-${tempo.angsuranKe} untuk \"$namapinjaman\" jatuh tempo $tenggatTempo."
+                                    showNotification(context, "Pengingat Angsuran", message)
+                                    sendFCM(context, userId, "Pengingat Angsuran", message)
+                                    hasNotifications = true
+                                }
+                            } catch (e: Exception) {
+                                Log.e("NotifikasiUtils", "Error parsing tanggalTempo: ${e.message}")
                             }
-                        } catch (e: Exception) {
-                            Log.e("NotifikasiUtils", "Error parsing tanggalTempo: ${e.message}")
-                            continue
                         }
                     }
                 }
 
-                return Result.success()
+                if (!hasNotifications) {
+                    showNotification(context, "Pengingat Hutang", "Tidak ada hutang atau angsuran yang jatuh tempo dalam 3 hari ke depan.")
+                }
+
+                Result.success()
             } catch (e: Exception) {
-                Log.e("NotifikasiUtils", "Error umum: ${e.message}")
-                return Result.failure()
+                Log.e("NotifikasiUtils", "Terjadi error: ${e.message}")
+                Result.failure()
             }
         }
 
-        fun sendFCM(context: Context, userId: String, title: String, message: String) {
+
+        fun sendFCM(context: Context, userId: String, title: String, message: String, hutangId: String? = null) {
             try {
                 val payload = JSONObject().apply {
-                    put("to", "/topics/$userId") // Kirim ke topik berdasarkan userId
+                    put("to", "/topics/$userId")
                     put("notification", JSONObject().apply {
                         put("title", title)
                         put("body", message)
                     })
                     put("data", JSONObject().apply {
                         put("click_action", "OPEN_MAIN_ACTIVITY")
+                        if (hutangId != null) {
+                            put("hutangId", hutangId)
+                        }
                     })
                 }
 

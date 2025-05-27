@@ -4,10 +4,21 @@
     <selectionStates>
       <SelectionState runConfigName="Unnamed">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-05-21T05:31:27.335081600Z">
+        <DropdownSelection timestamp="2025-05-24T13:11:15.312310800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=6DCEQWZLU849KFLB" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\alqan\.android\avd\Pixel_8.avd" />
+            </handle>
+          </Target>
+        </DropdownSelection>
+        <DialogSelection />
+      </SelectionState>
+      <SelectionState runConfigName="Test_App">
+        <option name="selectionMode" value="DROPDOWN" />
+        <DropdownSelection timestamp="2025-05-24T16:41:20.791732700Z">
+          <Target type="DEFAULT_BOOT">
+            <handle>
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\alqan\.android\avd\Pixel_7.avd" />
             </handle>
           </Target>
         </DropdownSelection>

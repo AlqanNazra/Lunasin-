@@ -35,6 +35,8 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.*
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import com.example.lunasin.Backend.Model.Tempo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,9 +45,13 @@ fun TanggalTempoScreen(viewModel: HutangViewModel, navController: NavController,
     val hutangState by viewModel.hutangState.collectAsState()
     val today = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
     var selectedDate by remember { mutableStateOf<String?>(null) }
-
+    val context = LocalContext.current
     LaunchedEffect(docId) {
-        viewModel.getHutangById(docId)
+        if (docId.isNotEmpty()) {
+            viewModel.getHutangById(docId) { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Scaffold(

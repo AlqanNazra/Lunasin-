@@ -1,9 +1,5 @@
 package com.example.lunasin.Frontend.UI.Home
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -23,84 +19,52 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModel
 import com.example.lunasin.R
-import com.example.lunasin.utils.NotifikasiUtils
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
+
 
 @Composable
 fun HomeScreen(
     navController: NavController,
     hutangViewModel: HutangViewModel,
-    piutangViewModel: PiutangViewModel
+    piutangViewModel: PiutangViewModel // Tambahkan parameter untuk PiutangViewModel
 ) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
-    val user = FirebaseAuth.getInstance().currentUser
+    val user = FirebaseAuth.getInstance().currentUser // Ambil user untuk displayName
     val hutangSaya by hutangViewModel.hutangSayaList.collectAsState()
-    val piutangSaya by piutangViewModel.piutangSayaList.collectAsState()
-    val context = LocalContext.current
+    val piutangSaya by piutangViewModel.piutangSayaList.collectAsState() // Gunakan instance piutangViewModel
 
     val totalHutang = hutangSaya.sumOf { it.totalHutang ?: 0.0 }
     val totalPiutang = piutangSaya.sumOf { it.totalHutang ?: 0.0 }
 
-    // State untuk izin notifikasi
-    var hasNotificationPermission by remember { mutableStateOf(
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-    ) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasNotificationPermission = isGranted
-    }
-
-    // State untuk memicu notifikasi
-    var triggerNotification by remember { mutableStateOf(false) }
-
-    // Coroutine untuk menjalankan checkAndSendNotifications
-    LaunchedEffect(triggerNotification) {
-        if (triggerNotification && hasNotificationPermission) {
-            withContext(Dispatchers.IO) {
-                NotifikasiUtils.checkAndSendNotifications(context)
-            }
-            triggerNotification = false // Reset state setelah selesai
-        }
-    }
-
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             hutangViewModel.ambilHutangSaya(userId)
-            piutangViewModel.ambilPiutangSaya(userId)
+            piutangViewModel.ambilPiutangSaya(userId) // Gunakan instance piutangViewModel
         }
     }
 
     Scaffold(
-        bottomBar = {  },
+        bottomBar = { BottomNavigationBar(navController) },
         backgroundColor = MaterialTheme.colorScheme.primary
     ) { paddingValues ->
         Box(
@@ -108,11 +72,12 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Teks "Welcome to Lunasin, [Nama Pengguna]" di atas sebelah kiri
             Text(
                 text = "Welcome to Lunasin, ${user?.displayName ?: "Pengguna"}",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.White // Warna putih agar kontras dengan background primary
                 ),
                 modifier = Modifier
                     .padding(start = 16.dp, top = 24.dp)
@@ -141,29 +106,6 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Tombol untuk memicu notifikasi manual
-                    Button(
-                        onClick = {
-                            if (hasNotificationPermission) {
-                                triggerNotification = true // Memicu coroutine
-                            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Cek Notifikasi Jatuh Tempo")
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -181,6 +123,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Hutang Saya (Saya berhutang ke orang lain)
                     Text(
                         "Hutang Saya",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -195,6 +138,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Hutang Teman Saya (Orang lain berhutang ke saya)
                     Text(
                         "Piutang Saya",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -384,3 +328,70 @@ fun HutangItemMini(hutang: Hutang) {
         }
     }
 }
+
+@Composable
+fun BottomNavigationBar(navController: NavController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    BottomNavigation(
+        backgroundColor = Color.White,
+        elevation = 8.dp
+    ) {
+        val items = listOf(
+            BottomNavItem("Home", R.drawable.ic_home, "home_screen"),
+            BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
+            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
+            BottomNavItem("Profile", R.drawable.ic_profile, "profile_screen")
+        )
+
+        items.forEach { item ->
+            val isSelected = currentRoute == item.route
+            BottomNavigationItem(
+                icon = {
+                    Box(
+                        modifier = if (isSelected) {
+                            Modifier
+                                .size(36.dp) // Ukuran lebih besar untuk background bulat
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
+                                .padding(6.dp) // Padding agar ikon tidak terlalu besar
+                        } else {
+                            Modifier.size(24.dp)
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = item.icon),
+                            contentDescription = item.label,
+                            tint = if (isSelected) Color.White else Color.Gray,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                },
+                label = {
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+                    )
+                },
+                selected = isSelected,
+                onClick = {
+                    navController.navigate(item.route) {
+                        // Hindari stack berulang
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+// Data class untuk item navigasi
+data class BottomNavItem(val label: String, val icon: Int, val route: String)

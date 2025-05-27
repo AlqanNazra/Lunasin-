@@ -1,6 +1,7 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -34,16 +36,19 @@ fun PreviewUtangPerhitunganScreen(
 ) {
     Log.d("PREVIEW_UTANG_PERHITUNGAN_SCREEN", "docId: $docId, userId: $userId")
 
-    LaunchedEffect(docId) {
-        if (docId.isNotEmpty()) {
-            viewModel.getHutangById(docId)
-        }
-    }
-
+    val context = LocalContext.current // Move context to top
     val hutang by viewModel.hutangState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(docId) {
+        if (docId.isNotEmpty()) {
+            viewModel.getHutangById(docId) { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     LaunchedEffect(claimSuccess) {
         claimSuccess?.let { hutangId ->
@@ -52,21 +57,25 @@ fun PreviewUtangPerhitunganScreen(
                 actionLabel = "OK",
                 duration = SnackbarDuration.Short
             )
-            viewModel.getHutangById(hutangId)
+            viewModel.getHutangById(docId) { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) { data ->
-            Snackbar(
-                snackbarData = data,
-                modifier = Modifier.padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                actionColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(8.dp)
-            )
-        } },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    modifier = Modifier.padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(8.dp)
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { /* Empty title */ },
@@ -329,7 +338,7 @@ fun PreviewUtangPerhitunganScreen(
                     when {
                         userId == hutang?.id_penerima -> {
                             Button(
-                                onClick = { /* Dummy button untuk Bayar */ },
+                                onClick = { /* TODO: Implement payment logic */ },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(start = 8.dp),
@@ -346,10 +355,21 @@ fun PreviewUtangPerhitunganScreen(
                             Button(
                                 onClick = {
                                     isClaiming = true
-                                    hutang?.docId?.let { hutangId ->
-                                        viewModel.klaimHutang(hutangId, userId)
+                                    hutang?.let { hutangData ->
+                                        viewModel.klaimHutang(hutangData) { success, errorMessage ->
+                                            isClaiming = false
+                                            if (success) {
+                                                claimSuccess = hutangData.docId
+                                                Log.d("PreviewUtang", "Claim succeeded for docId: ${hutangData.docId}")
+                                            } else {
+                                                Log.e("PreviewUtang", "Claim failed: $errorMessage")
+                                                Toast.makeText(context, errorMessage ?: "Gagal mengklaim hutang", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    } ?: run {
                                         isClaiming = false
-                                        claimSuccess = hutangId
+                                        Log.e("PreviewUtang", "Hutang is null")
+                                        Toast.makeText(context, "Data hutang tidak valid", Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 modifier = Modifier
@@ -396,6 +416,7 @@ fun PreviewUtangPerhitunganScreen(
                             navController.navigate("tanggalTempo/$docId")
                         } else {
                             Log.e("LihatJatuhTempo", "docId NULL atau kosong")
+                            Toast.makeText(context, "ID dokumen tidak valid", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier

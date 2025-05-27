@@ -37,7 +37,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var hutangViewModel: HutangViewModel
     private lateinit var piutangViewModel: PiutangViewModel
 
-    // Untuk FCM (Android 13+ permission)
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -52,7 +51,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Ubah status bar dan navigation bar jadi putih, dan ikon jadi gelap
         window.statusBarColor = Color.WHITE
         window.navigationBarColor = Color.WHITE
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -60,30 +58,31 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = true
         }
 
-        // Inisialisasi ViewModel
         val authRepository = AuthRepository(FirebaseAuth.getInstance())
         authViewModel = ViewModelProvider(this, AuthViewModelFactory(authRepository))[AuthViewModel::class.java]
-
         val firestoreService = FirestoreService()
         hutangViewModel = ViewModelProvider(this, HutangViewModelFactory(firestoreService))[HutangViewModel::class.java]
         piutangViewModel = ViewModelProvider(this, PiutangViewModelFactory(firestoreService))[PiutangViewModel::class.java]
 
-        // Minta izin notifikasi dan subscribe ke topik FCM
         askNotificationPermission()
 
-        // Tampilkan konten
         setContent {
             LunasinTheme {
-                val startDestination = Screen.Login.route
+                val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
+                    Screen.Home.route
+                } else {
+                    Screen.Login.route
+                }
                 NavGraph(authViewModel, hutangViewModel, piutangViewModel, startDestination)
             }
         }
 
-        // Jalankan notifikasi harian
+        // Tangani intent dari notifikasi
+        handleNotificationIntent()
+
         notifikasiHarian()
     }
 
-    // ✅ Fungsi notifikasi harian (local)
     private fun notifikasiHarian() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -101,16 +100,13 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    // ✅ Fungsi minta izin notifikasi (Android 13+)
     private fun askNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             when {
                 ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
-                    // Izin sudah diberikan
                     subscribeToTopic()
                 }
                 shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
-                    // Bisa tampilkan penjelasan UI di sini
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
                 else -> {
@@ -118,23 +114,33 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } else {
-            // Versi Android < 13 tidak perlu izin
             subscribeToTopic()
         }
     }
 
-    // ✅ Fungsi subscribe ke topik FCM
     private fun subscribeToTopic() {
-        FirebaseMessaging.getInstance().subscribeToTopic("reminder_hutang")
-            .addOnCompleteListener { task ->
-                val msg = if (task.isSuccessful) {
-                    "Berhasil subscribe ke reminder_hutang"
-                } else {
-                    "Gagal subscribe: ${task.exception?.message}"
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            FirebaseMessaging.getInstance().subscribeToTopic(userId)
+                .addOnCompleteListener { task ->
+                    val msg = if (task.isSuccessful) {
+                        "Berhasil subscribe ke topik $userId"
+                    } else {
+                        "Gagal subscribe: ${task.exception?.message}"
+                    }
+                    Log.d("MainActivity", msg)
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                 }
-                Log.d("MainActivity", msg)
-                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-            }
+        } else {
+            Log.w("MainActivity", "User tidak login, tidak bisa subscribe ke topik")
+        }
     }
 
+    private fun handleNotificationIntent() {
+        val hutangId = intent.getStringExtra("hutangId")
+        if (hutangId != null) {
+            Log.d("MainActivity", "Menerima hutangId dari notifikasi: $hutangId")
+            // Navigasi dilakukan di dalam setContent melalui NavGraph
+        }
+    }
 }

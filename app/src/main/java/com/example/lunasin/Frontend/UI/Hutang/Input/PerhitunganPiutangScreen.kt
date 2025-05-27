@@ -21,9 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.lunasin.Backend.Model.HutangType // Impor HutangType secara langsung
+import com.example.lunasin.Backend.Model.HutangType
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.theme.Black
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.*
@@ -45,9 +46,8 @@ fun PerhitunganPiutangScreen(
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
     var popupMessage by remember { mutableStateOf("") }
-    var nominalValue by remember { mutableStateOf("") }
 
-        val calendar = Calendar.getInstance()
+    val calendar = Calendar.getInstance()
     val datePicker = { onDateSelected: (String) -> Unit ->
         DatePickerDialog(
             context,
@@ -125,8 +125,6 @@ fun PerhitunganPiutangScreen(
                 value = nominalPinjaman,
                 onValueChange = { input ->
                     val cleanInput = input.replace(".", "").filter { it.isDigit() }
-
-                    nominalValue = cleanInput
                     nominalPinjaman = if (cleanInput.isNotEmpty()) {
                         NumberFormat.getInstance(Locale("in", "ID")).format(cleanInput.toLong())
                     } else {
@@ -194,8 +192,6 @@ fun PerhitunganPiutangScreen(
                 value = totalDenda,
                 onValueChange = { input ->
                     val cleanInput = input.replace(".", "").filter { it.isDigit() }
-
-                    nominalValue = cleanInput
                     totalDenda = if (cleanInput.isNotEmpty()) {
                         NumberFormat.getInstance(Locale("in", "ID")).format(cleanInput.toLong())
                     } else {
@@ -247,28 +243,40 @@ fun PerhitunganPiutangScreen(
 
                 Button(
                     onClick = {
-                        if (tanggalPinjam == "Pilih Tanggal") {
-                            Toast.makeText(context, "Harap pilih tanggal pinjaman!", Toast.LENGTH_SHORT).show()
+                        val currentUser = FirebaseAuth.getInstance().currentUser
+                        Log.d("AuthDebug", "Status autentikasi sebelum simpan: ${currentUser?.uid ?: "Tidak ada pengguna"}")
+                        if (currentUser == null) {
+                            Toast.makeText(context, "Harap login terlebih dahulu!", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-
+                        if (tanggalPinjam == "Pilih Tanggal" || tanggalJatuhTempo == "Pilih Tanggal Jatuh Tempo") {
+                            Toast.makeText(context, "Harap pilih tanggal pinjaman dan jatuh tempo!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (namaPinjaman.isEmpty()) {
+                            Toast.makeText(context, "Nama pemberi pinjaman tidak boleh kosong!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
                         val pinjamanValue = nominalPinjaman.replace(".", "").replace(",", "").toDoubleOrNull()
                         val dendaValue = totalDenda.replace(".", "").replace(",", "").toDoubleOrNull()
-
-                        if (namaPinjaman.isEmpty() || pinjamanValue == null || dendaValue == null) {
-                            Toast.makeText(context, "Input tidak valid! Masukkan angka yang benar.", Toast.LENGTH_SHORT).show()
+                        if (pinjamanValue == null) {
+                            Toast.makeText(context, "Nominal piutang tidak valid!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (dendaValue == null) {
+                            Toast.makeText(context, "Denda tetap tidak valid!", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
                         isLoading = true
-                        Log.d("PerhitunganPiutangScreen", "Mengirim data ke Firestore...")
+                        Log.d("PerhitunganPiutangScreen", "Mengirim data ke Firestore: nama=$namaPinjaman, nominal=$pinjamanValue, denda=$dendaValue, tanggalPinjam=$tanggalPinjam, tanggalJatuhTempo=$tanggalJatuhTempo, catatan=$catatan")
 
                         hutangViewModel.hitungDanSimpanHutang(
-                            type = "Piutang", // Menambahkan parameter type
-                            hutangType = HutangType.PERHITUNGAN, // Menggunakan HutangType langsung
+                            type = "Piutang",
+                            hutangType = HutangType.PERHITUNGAN,
                             namapinjaman = namaPinjaman,
                             nominalpinjaman = pinjamanValue,
-                            bunga = dendaValue, // Menggunakan dendaValue sebagai bunga untuk perhitungan
+                            bunga = dendaValue,
                             lamaPinjam = 0,
                             tanggalPinjam = tanggalPinjam,
                             tanggalJatuhTempo = tanggalJatuhTempo,
@@ -280,8 +288,9 @@ fun PerhitunganPiutangScreen(
                                 showPopup = true
                                 navigateToPreview = docId
                             } else {
-                                popupMessage = "Gagal menyimpan piutang!"
+                                popupMessage = "Gagal menyimpan piutang! Periksa log untuk detail."
                                 showPopup = true
+                                Log.e("PerhitunganPiutangScreen", "Gagal menyimpan piutang, docId: $docId")
                             }
                         }
                     },
@@ -321,7 +330,7 @@ fun PerhitunganPiutangScreen(
                         .fillMaxWidth()
                         .padding(16.dp),
                     shape = RoundedCornerShape(12.dp),
-                    containerColor = MaterialTheme.colorScheme.surface // Mengganti backgroundColor menjadi containerColor
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             }
         }
@@ -331,8 +340,13 @@ fun PerhitunganPiutangScreen(
         navigateToPreview?.let { docId ->
             showPopup = false
             delay(500)
-            navController.navigate("piutang_perhitungan_preview/$docId")
-            navigateToPreview = null
+            Log.d("NavigationDebug", "Navigasi ke piutang_perhitungan_preview/$docId")
+            try {
+                navController.navigate("piutang_perhitungan_preview/$docId")
+                navigateToPreview = null
+            } catch (e: Exception) {
+                Log.e("NavigationError", "Gagal navigasi: ${e.message}", e)
+            }
         }
     }
 }
