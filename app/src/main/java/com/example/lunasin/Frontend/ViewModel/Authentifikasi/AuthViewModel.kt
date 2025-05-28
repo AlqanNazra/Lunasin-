@@ -118,23 +118,10 @@ open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
             }
     }
 
-
-
-    fun signOut(navController: NavController) {
-        try {
-            authRepo.signOut()  // Memanggil fungsi sign out dari repositori
-            _isAuthenticated.value = false  // Mengubah status autentikasi
-            navController.navigate(Screen.Login.route) {
-                popUpTo(0) { inclusive = true }  // Menghapus semua rute sebelumnya
-                launchSingleTop = true  // Menjaga agar halaman login hanya muncul satu kali
-            }
-        } catch (e: Exception) {
-            Log.e("AuthViewModel", "Error during signOut", e)
-            // Tampilkan error atau beri tahu pengguna jika terjadi kesalahan
-        }
+    // Fungsi untuk update authentication state dari luar
+    fun setAuthenticationState(isAuthenticated: Boolean) {
+        _isAuthenticated.value = isAuthenticated
     }
-
-
 
     fun setError(s: String) {
         _errorMessage.value = s

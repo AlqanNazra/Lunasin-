@@ -96,7 +96,9 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                                 Log.d("QRScan", "Scanned docId: $docId") // Tambahkan log di sini
                                 coroutineScope.launch {
                                     isLoading = true
-                                    hutangViewModel.getHutangById(docId)
+                                    hutangViewModel.getHutangById(docId) { errorMessage ->
+                                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                    }
                                     // Setelah data dimuat, navigasi ke layar preview sesuai hutangType
                                     hutangViewModel.hutangState.value?.let { hutang ->
                                         when (hutang.hutangType) {
@@ -233,7 +235,9 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     onClick = {
                         if (searchId.isNotEmpty()) {
                             isLoading = true
-                            hutangViewModel.getHutangById(searchId)
+                            hutangViewModel.getHutangById(searchId) { errorMessage ->
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                            }
                             Log.d("SearchBar", "Mencari hutang dengan ID: $searchId")
                             // Pastikan isLoading diatur ulang setelah proses selesai
                             coroutineScope.launch {
@@ -281,7 +285,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 val currentUserId = hutangViewModel.currentUserId
                 recentSearch?.let { hutang ->
                     // Hanya tampilkan jika id_penerima == currentUserId (hutang) dan bukan piutang (userId != currentUserId)
-                    if (hutang.id_penerima == currentUserId && hutang.userId != currentUserId) {
+                    if (hutang.id_penerima == currentUserId.value && hutang.userId != currentUserId.value) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

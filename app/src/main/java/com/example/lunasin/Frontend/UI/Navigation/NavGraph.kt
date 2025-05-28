@@ -51,7 +51,7 @@ fun NavGraph(
 
         // Profile
         composable(Screen.Profile.route) {
-            ProfileScreen(navController)
+            ProfileScreen(navController,authViewModel)
         }
 
         // Input Piutang

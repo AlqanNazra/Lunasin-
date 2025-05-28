@@ -8,12 +8,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,22 +22,23 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.lunasin.Frontend.UI.Navigation.Screen
+import coil.compose.rememberAsyncImagePainter
 import com.example.lunasin.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
-import coil.compose.rememberAsyncImagePainter
+import com.example.lunasin.Frontend.UI.Navigation.Screen
+import com.example.lunasin.viewmodel.AuthViewModel
+import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavHostController, authViewModel: AuthViewModel) {
     val user = FirebaseAuth.getInstance().currentUser
     var showDropdown by remember { mutableStateOf(false) }
     var newPassword by remember { mutableStateOf("") }
     var isEditingPassword by remember { mutableStateOf(false) }
 
-    // Ambil foto profil dari Firebase Storage berdasarkan email
     val profilePictureUrl = remember { mutableStateOf<String?>(null) }
     LaunchedEffect(user?.email) {
         user?.email?.let { email ->
@@ -52,50 +52,77 @@ fun ProfileScreen(navController: NavController) {
         }
     }
 
-    // Tentukan painter untuk Image
     val painter = if (profilePictureUrl.value != null) {
         rememberAsyncImagePainter(profilePictureUrl.value)
     } else {
         painterResource(id = R.drawable.blankprofile)
     }
 
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    fun signOut(navController: NavHostController, authViewModel: AuthViewModel) {
+        try {
+            FirebaseAuth.getInstance().signOut()
+            authViewModel.setAuthenticationState(false)  // Update state di AuthViewModel
+
+            // Tampilkan Snackbar sebelum navigasi
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Logout berhasil")
+            }
+
+            // Navigasi dengan menghapus semua stack dan memastikan ke login
+            navController.navigate(Screen.Login.route) {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        } catch (e: Exception) {
+            Log.e("ProfileScreen", "Error during signOut", e)
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Gagal logout: ${e.message}")
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) },
-        backgroundColor = (MaterialTheme.colorScheme.primary)
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.primary
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .background(MaterialTheme.colorScheme.primary),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Your Profile",
-                    style = MaterialTheme.typography.titleLarge.copy(
+                    style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = Color.White
                     )
                 )
                 Box {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_settings),
                         contentDescription = "Settings",
-                        tint = Color.Black,
+                        tint = Color.White,
                         modifier = Modifier
                             .size(24.dp)
                             .clickable { showDropdown = true }
                     )
                     DropdownMenu(
                         expanded = showDropdown,
-                        onDismissRequest = { showDropdown = false },
-                        modifier = Modifier.background(Color.White)
+                        onDismissRequest = { showDropdown = false }
                     ) {
                         DropdownMenuItem(
                             text = { Text("Change Password") },
@@ -115,7 +142,6 @@ fun ProfileScreen(navController: NavController) {
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Foto Profil
                 Image(
                     painter = painter,
                     contentDescription = "Profile Picture",
@@ -124,22 +150,16 @@ fun ProfileScreen(navController: NavController) {
                         .clip(CircleShape)
                         .border(2.dp, Color.Gray, CircleShape)
                 )
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Nama dan Email
                 Text(
                     text = user?.displayName ?: "Nama Pengguna",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
                     text = user?.email ?: "Tidak ada email",
                     style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
                 )
-
                 Spacer(modifier = Modifier.height(24.dp))
-
-                // Form Ubah Password (hanya muncul saat isEditingPassword true)
                 if (isEditingPassword) {
                     Column(
                         modifier = Modifier
@@ -161,20 +181,24 @@ fun ProfileScreen(navController: NavController) {
                             }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Button(
                                 onClick = {
                                     user?.updatePassword(newPassword)?.addOnCompleteListener { task ->
                                         if (task.isSuccessful) {
                                             Log.d("ProfileScreen", "Password updated successfully")
+                                            isEditingPassword = false
+                                            newPassword = ""
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Password berhasil diubah")
+                                            }
                                         } else {
                                             Log.e("ProfileScreen", "Failed to update password", task.exception)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Gagal mengubah password")
+                                            }
                                         }
                                     }
-                                    isEditingPassword = false
-                                    newPassword = ""
                                 },
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -186,31 +210,14 @@ fun ProfileScreen(navController: NavController) {
                                     newPassword = ""
                                 },
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.Gray)
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
                             ) {
                                 Text("Cancel")
                             }
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.weight(1f))
-
-                fun signOut() {
-                    try {
-                        // Jika menggunakan Firebase atau sistem autentikasi lainnya
-                        FirebaseAuth.getInstance().signOut()
-
-                        // Arahkan ke halaman Login
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }  // Hapus semua screen sebelumnya
-                            launchSingleTop = true  // Pastikan hanya ada satu instance halaman login
-                        }
-                    } catch (e: Exception) {
-                        Log.e("ProfileScreen", "Error during signOut", e)
-                    }
-                }
-
                 Text(
                     text = "Logout",
                     style = MaterialTheme.typography.bodyLarge.copy(
@@ -219,18 +226,17 @@ fun ProfileScreen(navController: NavController) {
                     ),
                     modifier = Modifier
                         .clickable {
-                            signOut()  // Panggil fungsi signOut saat logout
+                            signOut(navController, authViewModel)
                         }
                         .padding(16.dp)
                 )
             }
-            }
         }
     }
-
+}
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun BottomNavigationBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
