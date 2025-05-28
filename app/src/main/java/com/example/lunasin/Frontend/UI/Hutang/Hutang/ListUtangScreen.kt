@@ -23,7 +23,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -37,17 +36,11 @@ import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.theme.Black
-import com.example.lunasin.utils.NotifikasiUtils.Companion.checkAndSendNotifications
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.rememberCoroutineScope
-
 
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
@@ -58,7 +51,6 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
-    val firestore = FirebaseFirestore.getInstance()
 
     // Ambil data hutang saya saat screen ditampilkan
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
@@ -101,12 +93,11 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                         .addOnSuccessListener { barcode ->
                             val docId = barcode.rawValue?.trim()
                             if (!docId.isNullOrEmpty()) {
-                                Log.d("QRScan", "Scanned docId: $docId")
+                                Log.d("QRScan", "Scanned docId: $docId") // Tambahkan log di sini
                                 coroutineScope.launch {
                                     isLoading = true
-                                    hutangViewModel.getHutangById(docId) { errorMessage ->
-                                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-                                    }
+                                    hutangViewModel.getHutangById(docId)
+                                    // Setelah data dimuat, navigasi ke layar preview sesuai hutangType
                                     hutangViewModel.hutangState.value?.let { hutang ->
                                         when (hutang.hutangType) {
                                             HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$docId")
@@ -114,11 +105,11 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                                             HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$docId")
                                             else -> {
                                                 Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
-                                                navController.navigate("hutang_teman_preview/$docId")
+                                                navController.navigate("hutang_teman_preview/$docId") // Fallback
                                             }
                                         }
                                     } ?: run {
-                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $docId")
+                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $docId") // Log error
                                         snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
                                     }
                                     isLoading = false
@@ -158,6 +149,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            // Header dengan background putih dan garis tipis
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -191,6 +183,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.Start
             ) {
+                // Judul
                 Text(
                     text = "Daftar Hutang Saya",
                     style = MaterialTheme.typography.headlineSmall,
@@ -204,6 +197,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
+                // 🔍 Search Bar
                 OutlinedTextField(
                     value = searchId,
                     onValueChange = { searchId = it },
@@ -233,41 +227,33 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Definisikan isButtonEnabled
-                val isButtonEnabled = searchId.isNotBlank() && !isLoading
-
                 // Tombol Cari
+                val isButtonEnabled = searchId.isNotBlank() && !isLoading
                 Button(
                     onClick = {
                         if (searchId.isNotEmpty()) {
-                            val cleanedSearchId = searchId.trim()
                             isLoading = true
-                            hutangViewModel.getHutangById(cleanedSearchId) { errorMessage ->
-                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-                            }
-                            Log.d("SearchBar", "Mencari hutang dengan Id_Transaksi: $cleanedSearchId")
+                            hutangViewModel.getHutangById(searchId)
+                            Log.d("SearchBar", "Mencari hutang dengan ID: $searchId")
+                            // Pastikan isLoading diatur ulang setelah proses selesai
                             coroutineScope.launch {
-                                var hasNavigated = false
-                                hutangViewModel.hutangState.collect { hutang ->
-                                    if (!hasNavigated) {
-                                        isLoading = false
-                                        hutang?.let {
-                                            when (it.hutangType) {
-                                                HutangType.TEMAN -> navController.navigate("hutang_teman_preview/${it.docId}")
-                                                HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/${it.docId}")
-                                                HutangType.SERIUS -> navController.navigate("hutang_serius_preview/${it.docId}")
-                                                else -> navController.navigate("hutang_teman_preview/${it.docId}")
-                                            }
-                                            hasNavigated = true
-                                        } ?: run {
-                                            snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
-                                        }
+                                // Tunggu hingga getHutangById selesai (opsional, tergantung kebutuhan)
+                                delay(2000) // Timeout sementara untuk debugging
+                                isLoading = false
+                                hutangViewModel.hutangState.value?.let { hutang ->
+                                    when (hutang.hutangType) {
+                                        HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$searchId")
+                                        HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$searchId")
+                                        HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$searchId")
+                                        else -> navController.navigate("hutang_teman_preview/$searchId")
                                     }
+                                } ?: run {
+                                    snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
                                 }
                             }
                         } else {
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Masukkan ID Transaksi")
+                                snackbarHostState.showSnackbar("Masukkan ID Hutang")
                             }
                         }
                     },
@@ -289,13 +275,12 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     }
                 }
 
-
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Dokumen Terakhir Dibuka (Recent Search)
-                val currentUserId by hutangViewModel.currentUserId.collectAsState()
+                val currentUserId = hutangViewModel.currentUserId
                 recentSearch?.let { hutang ->
+                    // Hanya tampilkan jika id_penerima == currentUserId (hutang) dan bukan piutang (userId != currentUserId)
                     if (hutang.id_penerima == currentUserId && hutang.userId != currentUserId) {
                         Row(
                             modifier = Modifier
@@ -313,7 +298,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                             )
                             IconButton(
                                 onClick = {
-                                    hutangViewModel.clearRecentSearch()
+                                    hutangViewModel.clearRecentSearch() // Hapus recent search
                                 }
                             ) {
                                 Icon(
@@ -332,6 +317,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                     }
                 }
 
+                // Daftar Hutang Saya
                 Text(
                     "Hutang Saya",
                     style = MaterialTheme.typography.titleMedium,
@@ -397,13 +383,14 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .clickable {
                 if (hutang.docId.isNotEmpty()) {
+                    // Navigasi berdasarkan hutangType
                     when (hutang.hutangType) {
                         HutangType.TEMAN -> navController.navigate("hutang_teman_preview/${hutang.docId}")
                         HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/${hutang.docId}")
                         HutangType.SERIUS -> navController.navigate("hutang_serius_preview/${hutang.docId}")
                         else -> {
                             Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
-                            navController.navigate("hutang_teman_preview/${hutang.docId}")
+                            navController.navigate("hutang_teman_preview/${hutang.docId}") // Fallback ke Teman
                         }
                     }
                 } else {
@@ -420,6 +407,7 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Ikon dekoratif di sisi kiri
             Box(
                 modifier = Modifier
                     .size(40.dp)
