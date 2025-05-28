@@ -85,12 +85,13 @@ dependencies {
 
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
-    implementation("com.google.firebase:firebase-firestore-ktx:25.1.3")
+    implementation ("com.google.firebase:firebase-firestore-ktx:24.10.0")
+
 
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx:22.3.0")
     implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
 
     // kalender Update
@@ -119,5 +120,6 @@ dependencies {
 
     // SpalashScreen
     implementation ("androidx.core:core-splashscreen:1.0.1")
+
 
 }

@@ -1,6 +1,7 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -33,10 +35,12 @@ fun PreviewPiutangPerhitunganScreen(
     docId: String
 ) {
     Log.d("PREVIEW_PIUTANG_PERHITUNGAN_SCREEN", "docId: $docId")
-
+    val context = LocalContext.current
     LaunchedEffect(docId) {
         if (docId.isNotEmpty()) {
-            viewModel.getHutangById(docId)
+            viewModel.getHutangById(docId) { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

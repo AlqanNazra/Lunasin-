@@ -1,5 +1,6 @@
 package com.example.lunasin.Frontend.ViewModel.Hutang
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
 import com.example.lunasin.Backend.Model.StatusBayar
+import com.example.lunasin.utils.NotifikasiUtils
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-
 class HutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
     private val _hutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
     val hutangSayaList: StateFlow<List<Hutang>> = _hutangSayaList
@@ -30,33 +31,107 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     private val _recentSearch = MutableStateFlow<Hutang?>(null)
     val recentSearch: StateFlow<Hutang?> = _recentSearch
 
-    private val firestore = FirebaseFirestore.getInstance()
-    val currentUserId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    private val _currentUserId = MutableStateFlow(FirebaseAuth.getInstance().currentUser?.uid.orEmpty())
+    val currentUserId: StateFlow<String> = _currentUserId
 
-    fun getHutangById(docId: String) {
+    private val firestore = FirebaseFirestore.getInstance()
+
+//    fun getHutangByIdTransaksi(idTransaksi: String) {
+//        viewModelScope.launch {
+//            try {
+//                Log.d("FirestoreDebug", "Mencari dokumen dengan Id_Transaksi: $idTransaksi")
+//                val querySnapshot = firestore.collection("hutang")
+//                    .whereEqualTo("Id_Transaksi", idTransaksi)
+//                    .get()
+//                    .await()
+//                if (!querySnapshot.isEmpty) {
+//                    val document = querySnapshot.documents.first()
+//                    Log.d("FirestoreDebug", "Dokumen ditemukan: ${document.id}, data: ${document.data}")
+//                    var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(Id_Transaksi = idTransaksi, docId = document.id)
+//                    val tanggalSekarang = LocalDate.now()
+//                    hutang = when (hutang.hutangType) {
+//                        HutangType.SERIUS -> {
+//                            val dendaListTempo = HutangCalculator.hitungDendaListTempo(
+//                                listTempo = hutang.listTempo.map { it.toMap() },
+//                                nominalPerAngsuran = hutang.totalcicilan,
+//                                bunga = hutang.bunga,
+//                                tanggalSekarang = tanggalSekarang
+//                            )
+//                            hutang.copy(
+//                                totalDenda = dendaListTempo,
+//                                totalHutang = hutang.totalHutang + dendaListTempo
+//                            )
+//                        }
+//                        HutangType.PERHITUNGAN -> {
+//                            val keterlambatan = HutangCalculator.hitungKeterlambatan(
+//                                tanggalJatuhTempo = hutang.tanggalJatuhTempo,
+//                                tanggalSekarang = tanggalSekarang
+//                            )
+//                            val denda = if (keterlambatan > 0) {
+//                                hutang.totalDenda
+//                            } else {
+//                                0.0
+//                            }
+//                            hutang.copy(
+//                                totalHutang = hutang.nominalpinjaman + denda
+//                            )
+//                        }
+//                        HutangType.TEMAN -> {
+//                            val keterlambatan = HutangCalculator.hitungKeterlambatan(
+//                                tanggalJatuhTempo = hutang.tanggalJatuhTempo,
+//                                tanggalSekarang = tanggalSekarang
+//                            )
+//                            val denda = if (keterlambatan > 0) {
+//                                HutangCalculator.dendaBunga_Bulan(
+//                                    sisahutang = hutang.nominalpinjaman,
+//                                    bunga = 5.0,
+//                                    telat = keterlambatan / 30
+//                                )
+//                            } else {
+//                                0.0
+//                            }
+//                            hutang.copy(
+//                                totalDenda = denda,
+//                                totalHutang = hutang.nominalpinjaman + denda
+//                            )
+//                        }
+//                        null -> {
+//                            Log.e("HutangViewModel", "HutangType null untuk Id_Transaksi: $idTransaksi")
+//                            hutang
+//                        }
+//                    }
+//                    _hutangState.value = hutang
+//                    _recentSearch.value = hutang
+//                    Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutang")
+//                } else {
+//                    _hutangState.value = null
+//                    _recentSearch.value = null
+//                    Log.e("Firestore", "Dokumen tidak ditemukan untuk Id_Transaksi: $idTransaksi")
+//                }
+//            } catch (e: Exception) {
+//                _hutangState.value = null
+//                _recentSearch.value = null
+//                Log.e("Firestore", "Gagal mengambil data: ${e.message}", e)
+//            }
+//        }
+//    }
+
+    fun getHutangById(docId: String, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
-                val currentUserId = this@HutangViewModel.currentUserId
-                Log.d("AuthDebug", "Current User ID: $currentUserId")
-                if (currentUserId.isEmpty()) {
-                    Log.e("HutangViewModel", "User ID tidak ditemukan")
-                    _hutangState.value = null
-                    _recentSearch.value = null
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                if (currentUser == null) {
+                    Log.e("FirestoreError", "Pengguna tidak login")
+                    onError("Harap login terlebih dahulu")
                     return@launch
                 }
-
-                Log.d("FirestoreDebug", "Mencari dokumen di path: hutang/$docId")
-                val document = firestore
-                    .collection("hutang")
-                    .document(docId)
-                    .get()
-                    .await()
-
+                Log.d("FirestoreDebug", "Mencari dokumen dengan docId: $docId untuk pengguna: ${currentUser.uid}")
+                val document = firestore.collection("hutang").document(docId).get().await()
                 if (document.exists()) {
-                    var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(docId = docId)
+                    val data = document.data ?: emptyMap()
+                    Log.d("FirestoreDebug", "Dokumen ditemukan: ${document.id}, userId: ${data["userId"]}, id_penerima: ${data["id_penerima"]}")
+                    var hutang = Hutang.fromMap(data).copy(docId = document.id)
                     val tanggalSekarang = LocalDate.now()
-
                     hutang = when (hutang.hutangType) {
                         HutangType.SERIUS -> {
                             val dendaListTempo = HutangCalculator.hitungDendaListTempo(
@@ -114,30 +189,71 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 } else {
                     _hutangState.value = null
                     _recentSearch.value = null
-                    Log.e("Firestore", "Dokumen tidak ditemukan di path: hutang/$docId")
+                    Log.w("Firestore", "Dokumen tidak ditemukan untuk docId: $docId")
+                    onError("Dokumen tidak ditemukan")
                 }
             } catch (e: Exception) {
                 _hutangState.value = null
                 _recentSearch.value = null
-                Log.e("Firestore", "Gagal mengambil data: ${e.message}", e)
+                Log.e("FirestoreError", "Gagal mengambil data: ${e.message}", e)
+                if (e.message?.contains("PERMISSION_DENIED") == true) {
+                    Log.w("SecurityWarning", "Akses ditolak untuk docId: $docId, pengguna: ${FirebaseAuth.getInstance().currentUser?.uid}")
+                    onError("Anda tidak memiliki izin untuk mengakses data ini")
+                } else {
+                    onError("Gagal mengambil data: ${e.message}")
+                }
             }
         }
     }
-
     fun clearRecentSearch() {
         _recentSearch.value = null
         Log.d("HutangViewModel", "Recent search telah dihapus")
     }
 
-    fun klaimHutang(idHutang: String, idPenerima: String) {
-        val hutangRef = firestore.collection("hutang").document(idHutang)
-        hutangRef.update("id_penerima", idPenerima)
-            .addOnSuccessListener {
-                Log.d("KlaimHutang", "Hutang berhasil diklaim oleh $idPenerima")
+    fun clearHutangState() {
+        _hutangState.value = null
+        Log.d("HutangViewModel", "Hasil pencarian telah dihapus")
+    }
+
+    fun klaimHutang(hutang: Hutang, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val user = FirebaseAuth.getInstance().currentUser
+                if (user == null || user.isAnonymous) {
+                    Log.e("FirestoreError", "Pengguna tidak terautentikasi atau anonim")
+                    onResult(false, "Harap login dengan akun yang valid")
+                    return@launch
+                }
+                val userId = user.uid
+                val hutangRef = firestore.collection("hutang").document(hutang.docId)
+
+                // Periksa keberadaan dokumen
+                val docSnapshot = hutangRef.get().await()
+                if (!docSnapshot.exists()) {
+                    Log.e("FirestoreError", "Dokumen tidak ditemukan: ${hutang.docId}")
+                    onResult(false, "Hutang tidak ditemukan")
+                    return@launch
+                }
+
+                Log.d("FirestoreDebug", "Mengklaim hutang: docId=${hutang.docId}, id_penerima=$userId")
+                hutangRef.update(
+                    mapOf(
+                        "isClaimed" to true,
+                        "claimedBy" to userId,
+                        "id_penerima" to userId
+                    )
+                ).await()
+                Log.d("FirestoreDebug", "Hutang berhasil diklaim oleh: $userId")
+                onResult(true, null)
+            } catch (e: Exception) {
+                Log.e("FirestoreError", "Gagal mengklaim hutang: ${e.message}", e)
+                if (e.message?.contains("PERMISSION_DENIED") == true) {
+                    onResult(false, "Anda tidak memiliki izin untuk mengklaim hutang ini")
+                } else {
+                    onResult(false, e.message)
+                }
             }
-            .addOnFailureListener {
-                Log.e("KlaimHutang", "Gagal klaim hutang", it)
-            }
+        }
     }
 
     fun ambilHutangSaya(userId: String) {
@@ -153,7 +269,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                     hutang = when (hutang.hutangType) {
                         HutangType.SERIUS -> {
                             val dendaListTempo = HutangCalculator.hitungDendaListTempo(
-                                listTempo = hutang.listTempo.map { it.toMap() }, // Konversi List<Tempo> ke List<Map<String, Any>>
+                                listTempo = hutang.listTempo.map { it.toMap() },
                                 nominalPerAngsuran = hutang.totalcicilan,
                                 bunga = hutang.bunga,
                                 tanggalSekarang = tanggalSekarang
@@ -185,8 +301,8 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                             val denda = if (keterlambatan > 0) {
                                 HutangCalculator.dendaBunga_Bulan(
                                     sisahutang = hutang.nominalpinjaman,
-                                    bunga = 5.0, // Default bunga jika tidak ada
-                                    telat = keterlambatan / 30 // Konversi hari ke bulan
+                                    bunga = 5.0,
+                                    telat = keterlambatan / 30
                                 )
                             } else {
                                 0.0
@@ -197,7 +313,6 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                             )
                         }
                         null -> {
-                            // Tangani kasus ketika hutangType null
                             Log.e("HutangViewModel", "HutangType null untuk docId: ${doc.id}")
                             hutang
                         }
@@ -207,7 +322,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 _hutangSayaList.value = daftarHutang
                 Log.d("HutangViewModel", "Daftar hutang setelah hitung: $daftarHutang")
             } catch (e: Exception) {
-                Log.e("HutangViewModel", "Gagal ambil hutang", e)
+                Log.e("HutangViewModel", "Gagal ambil hutang: ${e.message}", e)
             }
         }
     }
@@ -233,43 +348,58 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         }
 
         val userId = user.uid
+        Log.d("FirestoreDebug", "UID pengguna: $userId")
+
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        val calendar = Calendar.getInstance()
-        val parsedDate = sdf.parse(tanggalPinjam)
-        if (parsedDate == null) {
-            Log.e("FirestoreError", "Gagal mengonversi tanggal")
+
+        // Validasi tanggalPinjam
+        val parsedDate = try {
+            sdf.parse(tanggalPinjam)
+        } catch (e: Exception) {
+            Log.e("FirestoreError", "Format tanggal pinjaman tidak valid: $tanggalPinjam", e)
             onResult(false, null)
             return
         }
-        calendar.time = parsedDate
+        if (parsedDate == null) {
+            Log.e("FirestoreError", "Gagal mengonversi tanggal pinjaman: $tanggalPinjam")
+            onResult(false, null)
+            return
+        }
 
-        // Validasi tanggalJatuhTempo untuk tipe TEMAN dan PERHITUNGAN
+        // Validasi tanggalJatuhTempo untuk TEMAN dan PERHITUNGAN
         val effectiveTanggalJatuhTempo = when (hutangType) {
             HutangType.SERIUS -> {
-                // Untuk SERIUS, hitung otomatis berdasarkan lamaPinjam
                 HutangCalculator.hitungTanggalAkhir(tanggalPinjam, lamaPinjam)
             }
             HutangType.TEMAN, HutangType.PERHITUNGAN -> {
-                // Untuk TEMAN dan PERHITUNGAN, tanggalJatuhTempo wajib
                 if (tanggalJatuhTempo.isNullOrEmpty()) {
                     Log.e("FirestoreError", "Tanggal jatuh tempo wajib untuk tipe $hutangType")
                     onResult(false, null)
                     return
                 }
-                tanggalJatuhTempo
+                try {
+                    sdf.parse(tanggalJatuhTempo)
+                    tanggalJatuhTempo
+                } catch (e: Exception) {
+                    Log.e("FirestoreError", "Format tanggal jatuh tempo tidak valid: $tanggalJatuhTempo", e)
+                    onResult(false, null)
+                    return
+                }
             }
         }
+
         val idTransaksi = generateIdHutang()
+        val calendar = Calendar.getInstance().apply { time = parsedDate }
 
         val hutangData = when (hutangType) {
             HutangType.SERIUS -> createHutangSeriusData(
-                idTransaksi,userId, namapinjaman, nominalpinjaman, bunga, lamaPinjam, tanggalPinjam, catatan, calendar, sdf
+                idTransaksi, userId, namapinjaman, nominalpinjaman, bunga, lamaPinjam, tanggalPinjam, catatan, calendar, sdf
             )
             HutangType.TEMAN -> createHutangTemanData(
-                idTransaksi,userId, namapinjaman, nominalpinjaman, tanggalPinjam, effectiveTanggalJatuhTempo, catatan
+                idTransaksi, userId, namapinjaman, nominalpinjaman, tanggalPinjam, effectiveTanggalJatuhTempo, catatan
             )
             HutangType.PERHITUNGAN -> createHutangPerhitunganData(
-                idTransaksi,userId, namapinjaman, nominalpinjaman, dendaTetap ?: 0.0, tanggalPinjam, effectiveTanggalJatuhTempo, catatan
+                idTransaksi, userId, namapinjaman, nominalpinjaman, dendaTetap ?: 0.0, tanggalPinjam, effectiveTanggalJatuhTempo, catatan
             )
         }
 
@@ -277,27 +407,30 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             put("type", type)
         }
 
+        Log.d("FirestoreDebug", "Data yang akan disimpan: $finalHutangData")
         firestore.collection("hutang").add(finalHutangData)
             .addOnSuccessListener { documentReference ->
                 val docId = documentReference.id
+                Log.d("FirestoreDebug", "Dokumen berhasil disimpan dengan ID: $docId")
                 documentReference.update("docId", docId)
                     .addOnSuccessListener {
                         Log.d("FirestoreSuccess", "Hutang berhasil disimpan dengan docId: $docId")
                         onResult(true, docId)
                     }
                     .addOnFailureListener { e ->
-                        Log.e("FirestoreError", "Gagal menyimpan docId", e)
+                        Log.e("FirestoreError", "Gagal memperbarui docId untuk hutang: ${e.message}", e)
                         onResult(false, null)
                     }
             }
             .addOnFailureListener { e ->
-                Log.e("FirestoreError", "Gagal menyimpan data hutang", e)
+                Log.e("FirestoreError", "Gagal menyimpan data hutang: ${e.message}", e)
+                Log.d("FirestoreDebug", "Data yang gagal disimpan: $finalHutangData")
                 onResult(false, null)
             }
     }
 
     private fun createHutangSeriusData(
-        idTransaksi : String,
+        idTransaksi: String,
         userId: String,
         namapinjaman: String,
         nominalpinjaman: Double,
@@ -333,7 +466,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     }
 
     private fun createHutangTemanData(
-        idTransaksi : String,
+        idTransaksi: String,
         userId: String,
         namapinjaman: String,
         nominalpinjaman: Double,
@@ -358,7 +491,7 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     }
 
     private fun createHutangPerhitunganData(
-        idTransaksi : String,
+        idTransaksi: String,
         userId: String,
         namapinjaman: String,
         nominalpinjaman: Double,
@@ -404,13 +537,13 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     }
 
     private fun generateIdHutang(): String {
-            val timestamp = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault()).format(Date())
-            val randomString = (1..5)
-                .map { ('A'..'Z') + ('0'..'9') }
-                .flatten()
-                .shuffled()
-                .take(5)
-                .joinToString("")
+        val timestamp = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault()).format(Date())
+        val randomString = (1..5)
+            .map { ('A'..'Z') + ('0'..'9') }
+            .flatten()
+            .shuffled()
+            .take(5)
+            .joinToString("")
         return "${timestamp}_$randomString"
     }
 }
