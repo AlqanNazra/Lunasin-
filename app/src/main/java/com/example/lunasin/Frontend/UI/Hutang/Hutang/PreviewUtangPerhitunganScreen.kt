@@ -1,5 +1,7 @@
 package com.example.lunasin.Frontend.UI.Hutang.Hutang
 
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -25,8 +27,37 @@ import com.example.lunasin.theme.Black
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.utils.formatRupiah
 import java.util.Locale
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewModelScope
+import coil.compose.rememberAsyncImagePainter
+import com.example.lunasin.Backend.Model.StatusBayar
+import com.example.lunasin.utils.bayarUtils
+import com.example.lunasin.utils.PopupUtils
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
+import androidx.core.content.FileProvider
+import com.google.firebase.storage.FirebaseStorage
+import android.net.ConnectivityManager
+import com.google.firebase.storage.StorageException
+import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
+fun isNetworkAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = connectivityManager.activeNetworkInfo
+    return activeNetwork != null && activeNetwork.isConnected
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun PreviewUtangPerhitunganScreen(
     viewModel: HutangViewModel,
@@ -36,11 +67,12 @@ fun PreviewUtangPerhitunganScreen(
 ) {
     Log.d("PREVIEW_UTANG_PERHITUNGAN_SCREEN", "docId: $docId, userId: $userId")
 
-    val context = LocalContext.current // Move context to top
     val hutang by viewModel.hutangState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(docId) {
         if (docId.isNotEmpty()) {
@@ -131,7 +163,10 @@ fun PreviewUtangPerhitunganScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -244,9 +279,10 @@ fun PreviewUtangPerhitunganScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
-                                    text = hutang?.statusBayar?.name?.replace("_", " ")?.replaceFirstChar {
-                                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                                    } ?: "-",
+                                    text = hutang?.statusBayar?.name?.replace("_", " ")
+                                        ?.replaceFirstChar {
+                                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                                        } ?: "-",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
@@ -338,17 +374,53 @@ fun PreviewUtangPerhitunganScreen(
                     when {
                         userId == hutang?.id_penerima -> {
                             Button(
-                                onClick = { /* TODO: Implement payment logic */ },
+                                onClick = {
+                                    hutang?.let { hutangData ->
+                                        if (!isUploading && hutangData.statusBayar != StatusBayar.LUNAS) {
+                                            isUploading = true
+                                            val bayarUtils = bayarUtils()
+                                            val popupUtils = PopupUtils()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                val success = bayarUtils.updatePaymentStatus(hutangData.docId)
+                                                isUploading = false
+                                                if (success) {
+                                                    viewModel.getHutangById(docId) { errorMessage ->
+                                                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    popupUtils.showSimplePopup(
+                                                        context = context,
+                                                        title = "Pembayaran Berhasil",
+                                                        message = "Hutang telah berhasil dibayar.",
+                                                        positiveText = "OK"
+                                                    )
+                                                } else {
+                                                    Toast.makeText(context, "Gagal memperbarui status pembayaran", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(start = 8.dp),
+                                enabled = !isUploading && hutang?.statusBayar != StatusBayar.LUNAS,
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             ) {
-                                Text("Bayar", style = MaterialTheme.typography.labelLarge)
+                                if (isUploading) {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = if (hutang?.statusBayar == StatusBayar.LUNAS) "Sudah Dibayar" else "Bayar",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             }
                         }
                         hutang?.id_penerima.isNullOrEmpty() -> {

@@ -61,7 +61,8 @@ data class Hutang(
     // Tambahkan field untuk tanggal jatuh tempo
     val tanggalJatuhTempo: String = "",
     // Tambahkan field untuk status pembayaran
-    val statusBayar: StatusBayar? = StatusBayar.BELUM_LUNAS // Default ke BELUM_LUNAS
+    val statusBayar: StatusBayar? = StatusBayar.BELUM_LUNAS, // Default ke BELUM_LUNAS
+    val buktiPembayaranUrl: String? = null,
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -91,7 +92,8 @@ data class Hutang(
             // Simpan tanggal jatuh tempo
             "tanggalJatuhTempo" to tanggalJatuhTempo,
             // Simpan statusBayar sebagai String
-            "statusBayar" to statusBayar?.name
+            "statusBayar" to statusBayar?.name,
+            "buktiPembayaranUrl" to buktiPembayaranUrl,
         )
     }
 
@@ -129,12 +131,14 @@ data class Hutang(
                 type = map["type"] as? String ?: "",
                 // Ambil tanggal jatuh tempo dari Firestore
                 tanggalJatuhTempo = map["tanggalJatuhTempo"] as? String ?: "",
+                buktiPembayaranUrl = map["buktiPembayaranUrl"] as? String,
                 // Konversi String dari Firestore kembali ke StatusBayar
                 statusBayar = try {
                     map["statusBayar"]?.let { StatusBayar.valueOf(it as String) }
                 } catch (e: Exception) {
                     StatusBayar.BELUM_LUNAS // Default ke BELUM_LUNAS jika gagal
                 }
+
             )
         }
     }

@@ -41,7 +41,18 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.example.lunasin.utils.Notifikasi.NotificationReceiver
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
     var searchId by remember { mutableStateOf("") }
@@ -278,9 +289,53 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                         )
                     }
                 }
+                @OptIn(ExperimentalMaterial3Api::class)
+                Spacer(modifier = Modifier.height(24.dp))
+                val timePickerState = rememberTimePickerState()
+                var showTimePicker by remember { mutableStateOf(false) }
+
+                Button(
+                    onClick = { showTimePicker = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Set Notifikasi Harian")
+                }
+
+                if (showTimePicker) {
+                    AlertDialog(
+                        onDismissRequest = { showTimePicker = false },
+                        title = { Text("Pilih Waktu Notifikasi") },
+                        text = {
+                            TimePicker(state = timePickerState)
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                hutangViewModel.scheduleDailyNotification(
+                                    context,
+                                    timePickerState.hour,
+                                    timePickerState.minute
+                                )
+                                Toast.makeText(
+                                    context,
+                                    "Notifikasi dijadwalkan setiap jam ${timePickerState.hour}:${timePickerState.minute}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                showTimePicker = false
+                            }) {
+                                Text("OK")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showTimePicker = false }) {
+                                Text("Batal")
+                            }
+                        }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
                 // Dokumen Terakhir Dibuka (Recent Search)
                 val currentUserId = hutangViewModel.currentUserId
                 recentSearch?.let { hutang ->

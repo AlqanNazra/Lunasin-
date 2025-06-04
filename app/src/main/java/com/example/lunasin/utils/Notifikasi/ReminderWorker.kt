@@ -15,6 +15,7 @@ class ReminderWorker(appContext: Context, workerParams: WorkerParameters) : Work
         private const val CHANNEL_ID = "reminder_channel"
     }
 
+
     override fun doWork(): Result {
         val title = inputData.getString("title") ?: "Pengingat Hutang"
         val message = inputData.getString("message") ?: "Pengingat jatuh tempo hutang."

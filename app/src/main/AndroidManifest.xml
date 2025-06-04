@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
 
 
     <application
@@ -19,7 +23,15 @@
         android:theme="@style/Theme.Lunasin"
         tools:targetApi="31"
         tools:ignore="HardcodedDebugMode">
-
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.lunasin.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         <!-- Activity untuk Google Sign-In -->
         <activity android:name=".Frontend.UI.Hutang.Qrcode.QrScannerActivity" />
         <activity

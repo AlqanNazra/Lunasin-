@@ -25,8 +25,32 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Person
 import java.util.Locale
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
+import androidx.core.content.FileProvider
+import androidx.lifecycle.viewModelScope
+import coil.compose.rememberAsyncImagePainter
+import com.example.lunasin.Backend.Model.StatusBayar
+import com.example.lunasin.utils.PopupUtils
+import com.example.lunasin.utils.bayarUtils
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
+import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun PreviewUtangSeriusScreen(
     viewModel: HutangViewModel,
@@ -49,6 +73,7 @@ fun PreviewUtangSeriusScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var isClaiming by remember { mutableStateOf(false) }
     var claimSuccess by remember { mutableStateOf<String?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
 
     LaunchedEffect(claimSuccess) {
         claimSuccess?.let { docId ->
@@ -132,7 +157,10 @@ fun PreviewUtangSeriusScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -245,9 +273,10 @@ fun PreviewUtangSeriusScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
-                                    text = hutang?.statusBayar?.name?.replace("_", " ")?.replaceFirstChar {
-                                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                                    } ?: "-",
+                                    text = hutang?.statusBayar?.name?.replace("_", " ")
+                                        ?.replaceFirstChar {
+                                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                                        } ?: "-",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
@@ -319,7 +348,8 @@ fun PreviewUtangSeriusScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
-                                    text = hutang?.totalHutang?.let { formatRupiah(it) } ?: "Rp0,00",
+                                    text = hutang?.totalHutang?.let { formatRupiah(it) }
+                                        ?: "Rp0,00",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
@@ -343,7 +373,8 @@ fun PreviewUtangSeriusScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                                 Text(
-                                    text = hutang?.totalcicilan?.let { formatRupiah(it) } ?: "Rp0,00",
+                                    text = hutang?.totalcicilan?.let { formatRupiah(it) }
+                                        ?: "Rp0,00",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium
@@ -351,6 +382,7 @@ fun PreviewUtangSeriusScreen(
                             }
                         }
                     }
+                }
                 }
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -411,17 +443,53 @@ fun PreviewUtangSeriusScreen(
                     when {
                         userId == hutang?.id_penerima -> {
                             Button(
-                                onClick = { /* Dummy button untuk Bayar */ },
+                                onClick = {
+                                    hutang?.let { hutangData ->
+                                        if (!isUploading && hutangData.statusBayar != StatusBayar.LUNAS) {
+                                            isUploading = true
+                                            val bayarUtils = bayarUtils()
+                                            val popupUtils = PopupUtils()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                val success = bayarUtils.updatePaymentStatus(hutangData.docId)
+                                                isUploading = false
+                                                if (success) {
+                                                    viewModel.getHutangById(docId) { errorMessage ->
+                                                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    popupUtils.showSimplePopup(
+                                                        context = context,
+                                                        title = "Pembayaran Berhasil",
+                                                        message = "Hutang telah berhasil dibayar.",
+                                                        positiveText = "OK"
+                                                    )
+                                                } else {
+                                                    Toast.makeText(context, "Gagal memperbarui status pembayaran", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(start = 8.dp),
+                                enabled = !isUploading && hutang?.statusBayar != StatusBayar.LUNAS,
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             ) {
-                                Text("Bayar", style = MaterialTheme.typography.labelLarge)
+                                if (isUploading) {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = if (hutang?.statusBayar == StatusBayar.LUNAS) "Sudah Dibayar" else "Bayar",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             }
                         }
                         hutang?.id_penerima.isNullOrEmpty() -> {
@@ -433,15 +501,15 @@ fun PreviewUtangSeriusScreen(
                                             isClaiming = false
                                             if (success) {
                                                 claimSuccess = hutangData.docId
-                                                Log.d("PreviewUtang", "Klaim berhasil untuk docId: ${hutangData.docId}")
+                                                Log.d("PreviewUtang", "Claim succeeded for docId: ${hutangData.docId}")
                                             } else {
-                                                Log.e("PreviewUtang", "Klaim gagal: $errorMessage")
+                                                Log.e("PreviewUtang", "Claim failed: $errorMessage")
                                                 Toast.makeText(context, errorMessage ?: "Gagal mengklaim hutang", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     } ?: run {
                                         isClaiming = false
-                                        Log.e("PreviewUtang", "Objek hutang null")
+                                        Log.e("PreviewUtang", "Hutang is null")
                                         Toast.makeText(context, "Data hutang tidak valid", Toast.LENGTH_SHORT).show()
                                     }
                                 },
@@ -483,25 +551,25 @@ fun PreviewUtangSeriusScreen(
                         }
                     }
                 }
-                Button(
-                    onClick = {
-                        if (docId.isNotEmpty()) {
-                            navController.navigate("tanggalTempo/$docId")
-                        } else {
-                            Log.e("LihatJatuhTempo", "docId NULL atau kosong")
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Text("Lihat Jatuh Tempo", style = MaterialTheme.typography.labelLarge)
-                }
+            Button(
+                onClick = {
+                    if (docId.isNotEmpty()) {
+                        navController.navigate("tanggalTempo/$docId")
+                    } else {
+                        Log.e("LihatJatuhTempo", "docId NULL atau kosong")
+                        Toast.makeText(context, "ID dokumen tidak valid", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Text("Lihat Jatuh Tempo", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
