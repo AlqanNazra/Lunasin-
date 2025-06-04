@@ -120,6 +120,12 @@ dependencies {
 
     // SpalashScreen
     implementation ("androidx.core:core-splashscreen:1.0.1")
+    implementation ("com.google.firebase:firebase-storage:20.3.0")
+    implementation ("com.google.firebase:firebase-firestore:24.10.0")
+    implementation ("com.google.accompanist:accompanist-permissions:0.31.1-alpha")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    implementation ("androidx.compose.material3:material3:1.2.0")
 
 
 }

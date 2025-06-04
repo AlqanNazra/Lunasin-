@@ -1,20 +1,33 @@
 package com.example.lunasin.Frontend.ViewModel.Hutang
 
+import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
 import com.example.lunasin.Backend.Model.StatusBayar
+import com.example.lunasin.R
+import com.example.lunasin.utils.Notifikasi.NotificationReceiver
 import com.example.lunasin.utils.NotifikasiUtils
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Calendar
@@ -34,87 +47,8 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     private val _currentUserId = MutableStateFlow(FirebaseAuth.getInstance().currentUser?.uid.orEmpty())
     val currentUserId: StateFlow<String> = _currentUserId
 
+    private val storage = FirebaseStorage.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
-
-//    fun getHutangByIdTransaksi(idTransaksi: String) {
-//        viewModelScope.launch {
-//            try {
-//                Log.d("FirestoreDebug", "Mencari dokumen dengan Id_Transaksi: $idTransaksi")
-//                val querySnapshot = firestore.collection("hutang")
-//                    .whereEqualTo("Id_Transaksi", idTransaksi)
-//                    .get()
-//                    .await()
-//                if (!querySnapshot.isEmpty) {
-//                    val document = querySnapshot.documents.first()
-//                    Log.d("FirestoreDebug", "Dokumen ditemukan: ${document.id}, data: ${document.data}")
-//                    var hutang = Hutang.fromMap(document.data ?: emptyMap()).copy(Id_Transaksi = idTransaksi, docId = document.id)
-//                    val tanggalSekarang = LocalDate.now()
-//                    hutang = when (hutang.hutangType) {
-//                        HutangType.SERIUS -> {
-//                            val dendaListTempo = HutangCalculator.hitungDendaListTempo(
-//                                listTempo = hutang.listTempo.map { it.toMap() },
-//                                nominalPerAngsuran = hutang.totalcicilan,
-//                                bunga = hutang.bunga,
-//                                tanggalSekarang = tanggalSekarang
-//                            )
-//                            hutang.copy(
-//                                totalDenda = dendaListTempo,
-//                                totalHutang = hutang.totalHutang + dendaListTempo
-//                            )
-//                        }
-//                        HutangType.PERHITUNGAN -> {
-//                            val keterlambatan = HutangCalculator.hitungKeterlambatan(
-//                                tanggalJatuhTempo = hutang.tanggalJatuhTempo,
-//                                tanggalSekarang = tanggalSekarang
-//                            )
-//                            val denda = if (keterlambatan > 0) {
-//                                hutang.totalDenda
-//                            } else {
-//                                0.0
-//                            }
-//                            hutang.copy(
-//                                totalHutang = hutang.nominalpinjaman + denda
-//                            )
-//                        }
-//                        HutangType.TEMAN -> {
-//                            val keterlambatan = HutangCalculator.hitungKeterlambatan(
-//                                tanggalJatuhTempo = hutang.tanggalJatuhTempo,
-//                                tanggalSekarang = tanggalSekarang
-//                            )
-//                            val denda = if (keterlambatan > 0) {
-//                                HutangCalculator.dendaBunga_Bulan(
-//                                    sisahutang = hutang.nominalpinjaman,
-//                                    bunga = 5.0,
-//                                    telat = keterlambatan / 30
-//                                )
-//                            } else {
-//                                0.0
-//                            }
-//                            hutang.copy(
-//                                totalDenda = denda,
-//                                totalHutang = hutang.nominalpinjaman + denda
-//                            )
-//                        }
-//                        null -> {
-//                            Log.e("HutangViewModel", "HutangType null untuk Id_Transaksi: $idTransaksi")
-//                            hutang
-//                        }
-//                    }
-//                    _hutangState.value = hutang
-//                    _recentSearch.value = hutang
-//                    Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutang")
-//                } else {
-//                    _hutangState.value = null
-//                    _recentSearch.value = null
-//                    Log.e("Firestore", "Dokumen tidak ditemukan untuk Id_Transaksi: $idTransaksi")
-//                }
-//            } catch (e: Exception) {
-//                _hutangState.value = null
-//                _recentSearch.value = null
-//                Log.e("Firestore", "Gagal mengambil data: ${e.message}", e)
-//            }
-//        }
-//    }
 
     fun getHutangById(docId: String, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -545,5 +479,70 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             .take(5)
             .joinToString("")
         return "${timestamp}_$randomString"
+    }
+
+    suspend fun uploadBuktiPembayaran(hutangId: String, imageUri: Uri): String? {
+        return try {
+            val storageRef = storage.reference.child("bukti_pembayaran/$hutangId.jpg")
+            val uploadTask = storageRef.putFile(imageUri).await()
+            val downloadUrl = storageRef.downloadUrl.await().toString()
+
+            // Update Firestore dengan URL foto
+            firestore.collection("hutang").document(hutangId)
+                .update(mapOf(
+                    "buktiPembayaranUrl" to downloadUrl,
+                    "statusBayar" to StatusBayar.LUNAS.name,
+                    "tanggalBayar" to java.time.LocalDate.now().toString()
+                )).await()
+            downloadUrl
+        } catch (e: Exception) {
+            Log.e("HutangViewModel", "Error uploading bukti pembayaran: ${e.message}")
+            null
+        }
+    }
+
+    fun scheduleDailyNotification(context: Context, hour: Int, minute: Int) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, NotificationReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Set waktu notifikasi berdasarkan input
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            if (before(Calendar.getInstance())) add(Calendar.DAY_OF_MONTH, 1) // Kalau sudah lewat waktu hari ini
+        }
+
+        alarmManager.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
+    }
+    fun showImmediateNotification(context: Context) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "daily_reminder"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Daily Reminder",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setContentTitle("Test Reminder")
+            .setContentText("Ini adalah notifikasi test dari Lunasin")
+            .setSmallIcon(R.drawable.ic_notification)
+            .build()
+
+        notificationManager.notify(1002, notification)
     }
 }

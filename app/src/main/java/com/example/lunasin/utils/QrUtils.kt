@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
-@Preview(showBackground = true)
 fun QrCodeDialogButton(
     data: String,
     onDismissRequest: () -> Unit
