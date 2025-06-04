@@ -50,6 +50,12 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
+    // core Compose
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-text")
+
+    implementation("androidx.compose.foundation:foundation")
+
     // Material Design 3
     implementation("androidx.compose.material3:material3")
 
