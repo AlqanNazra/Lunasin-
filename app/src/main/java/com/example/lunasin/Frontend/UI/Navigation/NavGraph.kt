@@ -2,11 +2,11 @@ package com.example.lunasin.Frontend.UI.Navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModel
 import com.example.lunasin.Frontend.UI.Hutang.Hutang.*
@@ -17,6 +17,8 @@ import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
 import com.example.lunasin.ui.screens.ForgotPasswordScreen
 import com.example.lunasin.ui.screens.LoginScreen
 import com.example.lunasin.ui.screens.SignUpScreen
+import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModel
+import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModelFactory
 import com.example.lunasin.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 
@@ -51,7 +53,8 @@ fun NavGraph(
 
         // Profile
         composable(Screen.Profile.route) {
-            ProfileScreen(navController,authViewModel)
+            val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
+            ProfileScreen(navController, authViewModel, profileViewModel)
         }
 
         // Input Piutang

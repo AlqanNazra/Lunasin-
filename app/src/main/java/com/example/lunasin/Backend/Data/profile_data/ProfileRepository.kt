@@ -1,25 +1,35 @@
 package com.example.lunasin.Backend.Data.profile_data
 
-import android.content.Context
-import com.example.lunasin.Backend.model.Profile
+import android.util.Log
+import com.example.lunasin.Backend.Model.Profile
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
-class ProfileRepository(context: Context) {
-    private val prefs = context.getSharedPreferences("profile_prefs", Context.MODE_PRIVATE)
+class ProfileRepository {
+    private val firestore = FirebaseFirestore.getInstance()
+    private val profileCollection = firestore.collection("profile")
 
-    fun getProfile(): Profile {
-        val name   = prefs.getString("name", "") ?: ""
-        val addr   = prefs.getString("address", "") ?: ""
-        val phone  = prefs.getString("phone", "") ?: ""
-        val income = prefs.getString("income", "0.0")!!.toDouble()
-        return Profile(name, addr, phone, income)
+    suspend fun getProfile(userId: String): Profile {
+        return try {
+            val document = profileCollection.document(userId).get().await()
+            if (document.exists()) {
+                Profile.fromMap(document.data ?: emptyMap())
+            } else {
+                Profile() // Kembalikan profil kosong jika tidak ada
+            }
+        } catch (e: Exception) {
+            Log.e("ProfileRepository", "Gagal mengambil profil: ${e.message}", e)
+            Profile() // Kembalikan profil kosong jika gagal
+        }
     }
 
-    fun saveProfile(p: Profile) {
-        prefs.edit()
-            .putString("name", p.name)
-            .putString("address", p.address)
-            .putString("phone", p.phone)
-            .putString("income", p.monthlyIncome.toString())
-            .apply()
+    suspend fun saveProfile(userId: String, profile: Profile) {
+        try {
+            profileCollection.document(userId).set(profile.toMap()).await()
+            Log.d("ProfileRepository", "Profil berhasil disimpan untuk userId: $userId")
+        } catch (e: Exception) {
+            Log.e("ProfileRepository", "Gagal menyimpan profil: ${e.message}", e)
+            throw e // Lempar exception untuk ditangani oleh ViewModel
+        }
     }
 }

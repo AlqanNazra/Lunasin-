@@ -1,18 +1,19 @@
-package com.example.lunasin.Frontend.viewmodel.Profile
+package com.example.lunasin.Frontend.ViewModel.Profile
 
-import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.lunasin.Backend.Data.profile_data.ProfileRepository
-import com.example.lunasin.Backend.model.Profile
+import com.example.lunasin.Backend.Model.Profile
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
-class ProfileViewModel(app: Application) : AndroidViewModel(app) {
-    private val repo = ProfileRepository(app)
-
+class ProfileViewModel(
+    private val repository: ProfileRepository = ProfileRepository()
+) : ViewModel() {
     var name by mutableStateOf("")
         private set
     var address by mutableStateOf("")
@@ -21,56 +22,91 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var incomeText by mutableStateOf("")
         private set
-    var debtLimit by mutableStateOf(0.0)  // Properti untuk limit hutang
+    var debtLimit by mutableStateOf(0.0)
         private set
-
     var isProfileSaved by mutableStateOf(false)
         private set
+    var errorMessage by mutableStateOf<String?>(null)
 
     init {
         loadProfile()
     }
 
     private fun loadProfile() {
-        val p: Profile = repo.getProfile()
-        Log.d("ProfileViewModel", "Loaded Profile: $p")
-        if (p.name.isBlank()) {
-            val user = FirebaseAuth.getInstance().currentUser
-            name = user?.displayName ?: "Nama Pengguna"
-            address = ""
-            phone = ""
-            incomeText = "0"
-            debtLimit = 0.0
-        } else {
-            name = p.name
-            address = p.address
-            phone = p.phone
-            incomeText = p.monthlyIncome.toString()
-            debtLimit = calculateDebtLimit(p.monthlyIncome)
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            Log.e("ProfileViewModel", "Pengguna tidak login")
+            errorMessage = "Harap login terlebih dahulu"
+            return
         }
-        isProfileSaved = p.name.isNotBlank()
+
+        viewModelScope.launch {
+            try {
+                val profile = repository.getProfile(user.uid)
+                if (profile.name.isBlank()) {
+                    name = user.displayName ?: "Nama Pengguna"
+                    address = ""
+                    phone = ""
+                    incomeText = "0"
+                    debtLimit = 0.0
+                    isProfileSaved = false
+                } else {
+                    name = profile.name
+                    address = profile.address
+                    phone = profile.phone
+                    incomeText = profile.monthlyIncome.toString()
+                    debtLimit = profile.debtLimit
+                    isProfileSaved = true
+                }
+                Log.d("ProfileViewModel", "Profil dimuat: $profile")
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Gagal memuat profil: ${e.message}", e)
+                errorMessage = "Gagal memuat profil"
+            }
+        }
     }
 
-    // Menghitung limit hutang sebagai 50% dari pendapatan
     private fun calculateDebtLimit(income: Double): Double {
         return income * 0.5
     }
 
-    fun updateName(newName: String)     { name = newName }
+    fun updateName(newName: String) { name = newName }
     fun updateAddress(newAddress: String) { address = newAddress }
-    fun updatePhone(newPhone: String)    { phone = newPhone }
-    fun updateIncome(newIncome: String)  {
+    fun updatePhone(newPhone: String) { phone = newPhone }
+    fun updateIncome(newIncome: String) {
         incomeText = newIncome
         val income = newIncome.toDoubleOrNull() ?: 0.0
         debtLimit = calculateDebtLimit(income)
     }
 
     fun saveProfile() {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            Log.e("ProfileViewModel", "Pengguna tidak login")
+            errorMessage = "Harap login terlebih dahulu"
+            return
+        }
+
         val income = incomeText.toDoubleOrNull() ?: 0.0
-        val profile = Profile(name, address, phone, income)
-        repo.saveProfile(profile)
-        debtLimit = calculateDebtLimit(income)  // Hitung ulang limit hutang saat menyimpan
-        isProfileSaved = true
+        val profile = Profile(
+            name = name,
+            address = address,
+            phone = phone,
+            monthlyIncome = income,
+            debtLimit = debtLimit
+        )
+
+        viewModelScope.launch {
+            try {
+                repository.saveProfile(user.uid, profile)
+                isProfileSaved = true
+                errorMessage = null
+                Log.d("ProfileViewModel", "Profil berhasil disimpan: $profile")
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Gagal menyimpan profil: ${e.message}", e)
+                errorMessage = "Gagal menyimpan profil"
+            }
+        }
     }
 
     fun editProfile() {

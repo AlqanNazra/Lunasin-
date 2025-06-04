@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,10 +30,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import com.example.lunasin.Frontend.UI.Navigation.BottomNavigationBar
 import com.example.lunasin.Frontend.UI.Navigation.Screen
+import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModel
+import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModelFactory
 import com.example.lunasin.R
 import com.example.lunasin.viewmodel.AuthViewModel
-import com.example.lunasin.Frontend.viewmodel.Profile.ProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
@@ -41,7 +44,7 @@ import kotlinx.coroutines.launch
 fun ProfileScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
 ) {
     val user = FirebaseAuth.getInstance().currentUser
     var isEditingPassword by remember { mutableStateOf(false) }
@@ -50,7 +53,17 @@ fun ProfileScreen(
     val profilePictureUrl = remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
+    // Tampilkan error dari ViewModel jika ada
+    LaunchedEffect(profileViewModel.errorMessage) {
+        profileViewModel.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            profileViewModel.errorMessage = null // Reset error setelah ditampilkan
+        }
+    }
+
+    // Load profile picture
     LaunchedEffect(user?.email) {
         user?.email?.let { email ->
             FirebaseStorage.getInstance().reference
@@ -85,310 +98,372 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFF80CBC4)
-    ) { padding ->
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { BottomNavigationBar(navController, snackbarHostState) }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(pading)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
         ) {
-            Row(
+            // Header with back button and title
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "Pengaturan Profil",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                Text(
-                    text = "Profile Settings",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White
-                    )
+                Divider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
-
-            Image(
-                painter = painter,
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, Color.White, CircleShape)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = profileViewModel.name.ifEmpty { user?.displayName ?: "Nama Pengguna" },
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-            )
-            Text(
-                text = user?.email ?: "Tidak ada email",
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
+                // Profile Picture and User Info
+                Image(
+                    painter = painter,
+                    contentDescription = "Profile Picture",
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { isEditingPassword = true }
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Change Password", fontSize = 16.sp, color = Color.Black)
-                    Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
-                }
-                Divider(color = Color.LightGray, thickness = 1.dp)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { isEditingProfile = true }
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Edit Profile", fontSize = 16.sp, color = Color.Black)
-                    Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Nama: ${profileViewModel.name.ifEmpty { user?.displayName ?: "Nama Pengguna" }}", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                    Text("Alamat: ${profileViewModel.address}", fontSize = 16.sp)
-                    Text("Telepon: ${profileViewModel.phone}", fontSize = 16.sp)
-                    Text("Pendapatan: ${profileViewModel.incomeText}", fontSize = 16.sp)
-                    Text("Limit Hutang: ${profileViewModel.debtLimit}", fontSize = 16.sp)
-                }
-            }
-
-            if (isEditingProfile) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        OutlinedTextField(
-                            value = profileViewModel.name,
-                            onValueChange = { profileViewModel.updateName(it) },
-                            label = { Text("Nama") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = profileViewModel.address,
-                            onValueChange = { profileViewModel.updateAddress(it) },
-                            label = { Text("Alamat") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = profileViewModel.phone,
-                            onValueChange = { profileViewModel.updatePhone(it) },
-                            label = { Text("Telepon") },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-                        )
-                        OutlinedTextField(
-                            value = profileViewModel.incomeText,
-                            onValueChange = { profileViewModel.updateIncome(it) },
-                            label = { Text("Pendapatan / bulan") },
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        profileViewModel.saveProfile()
-                        isEditingProfile = false
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Profil berhasil disimpan")
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                ) {
-                    Text("Simpan Profil", color = Color.White)
-                }
-            }
-
-            if (isEditingPassword) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        OutlinedTextField(
-                            value = newPassword,
-                            onValueChange = { newPassword = it },
-                            label = { Text("New Password") },
-                            singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                Text(
+                    text = profileViewModel.name.ifEmpty { user?.displayName ?: "Nama Pengguna" },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = user?.email ?: "Tidak ada email",
+                    style = MaterialTheme.typography.labelMedium.copy(color = Color.Black.copy(alpha = 0.7f))
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Profile Actions Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                 ) {
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isEditingPassword = true }
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Ubah Kata Sandi",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Color.Black.copy(alpha = 0.7f)
+                            )
+                        }
+                        Divider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isEditingProfile = true }
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Edit Profil",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Color.Black.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Profile Details Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Nama: ${profileViewModel.name.ifEmpty { user?.displayName ?: "Nama Pengguna" }}",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Alamat: ${profileViewModel.address}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Telepon: ${profileViewModel.phone}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Pendapatan: ${profileViewModel.incomeText}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Limit Hutang: ${profileViewModel.debtLimit}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                // Edit Profile Section
+                if (isEditingProfile) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            OutlinedTextField(
+                                value = profileViewModel.name,
+                                onValueChange = { profileViewModel.updateName(it) },
+                                label = { Text("Nama") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = profileViewModel.address,
+                                onValueChange = { profileViewModel.updateAddress(it) },
+                                label = { Text("Alamat") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = profileViewModel.phone,
+                                onValueChange = { profileViewModel.updatePhone(it) },
+                                label = { Text("Telepon") },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = profileViewModel.incomeText,
+                                onValueChange = { profileViewModel.updateIncome(it) },
+                                label = { Text("Pendapatan / bulan") },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            user?.updatePassword(newPassword)?.addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    isEditingPassword = false
-                                    newPassword = ""
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Password berhasil diubah")
-                                    }
-                                } else {
-                                    Log.e("ProfileScreen", "Failed to update password", task.exception)
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Gagal mengubah password")
+                            profileViewModel.saveProfile()
+                            isEditingProfile = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text(
+                            text = "Simpan Profil",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+
+                // Edit Password Section
+                if (isEditingPassword) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            OutlinedTextField(
+                                value = newPassword,
+                                onValueChange = { newPassword = it },
+                                label = { Text("Kata Sandi Baru") },
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    cursorColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                user?.updatePassword(newPassword)?.addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        isEditingPassword = false
+                                        newPassword = ""
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Password berhasil diubah")
+                                        }
+                                    } else {
+                                        Log.e("ProfileScreen", "Failed to update password", task.exception)
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Gagal mengubah password")
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                    ) {
-                        Text("Save", color = Color.White)
-                    }
-                    Button(
-                        onClick = {
-                            isEditingPassword = false
-                            newPassword = ""
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                    ) {
-                        Text("Cancel", color = Color.White)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = { signOut() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                shape = RoundedCornerShape(50)
-            ) {
-                Text(
-                    text = "Logout",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-fun BottomNavigationBar(navController: NavHostController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    BottomNavigation(
-        backgroundColor = Color.White,
-        elevation = 8.dp
-    ) {
-        val items = listOf(
-            BottomNavItem("Home", R.drawable.ic_home, "home_screen"),
-            BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
-            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
-            BottomNavItem("Profile", R.drawable.ic_profile, "profile_screen")
-        )
-
-        items.forEach { item ->
-            val isSelected = currentRoute == item.route
-            BottomNavigationItem(
-                icon = {
-                    Box(
-                        modifier = if (isSelected) {
-                            Modifier
-                                .size(36.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                )
-                                .padding(6.dp)
-                        } else {
-                            Modifier.size(24.dp)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text(
+                                text = "Simpan",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = item.icon),
-                            contentDescription = item.label,
-                            tint = if (isSelected) Color.White else Color.Gray,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                },
-                label = {
-                    Text(
-                        text = item.label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
-                    )
-                },
-                selected = isSelected,
-                onClick = {
-                    navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                        Button(
+                            onClick = {
+                                isEditingPassword = false
+                                newPassword = ""
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                        ) {
+                            Text(
+                                text = "Batal",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 }
-            )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Logout Button
+                Button(
+                    onClick = { signOut() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        text = "Logout",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 }
-
-data class BottomNavItem(val label: String, val icon: Int, val route: String)
