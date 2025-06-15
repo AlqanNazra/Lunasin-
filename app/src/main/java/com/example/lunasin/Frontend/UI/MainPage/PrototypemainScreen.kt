@@ -3,22 +3,21 @@ package com.example.lunasin.Frontend.UI.Home
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.pager.VerticalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,54 +29,87 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.lunasin.Backend.Model.Hutang
+import com.example.lunasin.Frontend.UI.Navigation.Screen
 import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModel
+import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModel
+import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModelFactory
 import com.example.lunasin.R
 import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
-
+import androidx.compose.foundation.Canvas
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import com.example.lunasin.Frontend.UI.Navigation.BottomNavigationBar
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
     navController: NavController,
     hutangViewModel: HutangViewModel,
-    piutangViewModel: PiutangViewModel // Tambahkan parameter untuk PiutangViewModel
+    piutangViewModel: PiutangViewModel,
+    profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
 ) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
-    val user = FirebaseAuth.getInstance().currentUser // Ambil user untuk displayName
+    val user = FirebaseAuth.getInstance().currentUser
     val hutangSaya by hutangViewModel.hutangSayaList.collectAsState()
-    val piutangSaya by piutangViewModel.piutangSayaList.collectAsState() // Gunakan instance piutangViewModel
+    val piutangSaya by piutangViewModel.piutangSayaList.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val totalHutang = hutangSaya.sumOf { it.totalHutang ?: 0.0 }
     val totalPiutang = piutangSaya.sumOf { it.totalHutang ?: 0.0 }
 
+    // Arahkan ke login jika pengguna tidak terautentikasi
     LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
+        if (userId.isEmpty()) {
+            navController.navigate(Screen.Login.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
+            }
+        } else {
             hutangViewModel.ambilHutangSaya(userId)
-            piutangViewModel.ambilPiutangSaya(userId) // Gunakan instance piutangViewModel
+            piutangViewModel.ambilPiutangSaya(userId)
+        }
+    }
+
+    // Tangani pesan error dari ProfileViewModel
+    LaunchedEffect(profileViewModel.errorMessage) {
+        profileViewModel.errorMessage?.let { message ->
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(message)
+                profileViewModel.errorMessage = null
+            }
         }
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController) },
-        backgroundColor = MaterialTheme.colorScheme.primary
+        bottomBar = { BottomNavigationBar(navController, snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.primary
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Teks "Welcome to Lunasin, [Nama Pengguna]" di atas sebelah kiri
+            // Teks "Welcome to Lunasin, [Nama dari Firestore]"
             Text(
-                text = "Welcome to Lunasin, ${user?.displayName ?: "Pengguna"}",
+                text = "Welcome to Lunasin, ${profileViewModel.name.ifEmpty { user?.displayName ?: "Pengguna" }}",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color.White // Warna putih agar kontras dengan background primary
+                    color = Color.White
                 ),
                 modifier = Modifier
                     .padding(start = 16.dp, top = 24.dp)
@@ -90,8 +122,8 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .fillMaxHeight(0.75f)
                     .align(Alignment.BottomCenter),
-                elevation = 8.dp,
-                backgroundColor = Color.White
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(
                     modifier = Modifier
@@ -117,13 +149,14 @@ fun HomeScreen(
                             navController.navigate("list_hutang_screen")
                         }
                         OptionCard("Laporan", R.drawable.ic_chart, Color(0xFFFF9800), Modifier.weight(1f)) {
-                            navController.navigate("laporan_hutang_screen")
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Fitur belum diimplementasikan")
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Hutang Saya (Saya berhutang ke orang lain)
                     Text(
                         "Hutang Saya",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -138,7 +171,6 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Hutang Teman Saya (Orang lain berhutang ke saya)
                     Text(
                         "Piutang Saya",
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -205,11 +237,11 @@ fun SwipableDebtCards(
             ) {
                 Card(
                     shape = RoundedCornerShape(20.dp),
-                    backgroundColor = colors[page],
-                    elevation = 10.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(180.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors[page])
                 ) {
                     Box(
                         modifier = Modifier
@@ -265,11 +297,11 @@ fun OptionCard(
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        backgroundColor = Color.White,
         modifier = modifier
             .clickable { onClick() }
             .padding(4.dp),
-        elevation = 2.dp
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -310,7 +342,8 @@ fun HutangItemMini(hutang: Hutang) {
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
-        elevation = 3.dp
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
@@ -328,70 +361,3 @@ fun HutangItemMini(hutang: Hutang) {
         }
     }
 }
-
-@Composable
-fun BottomNavigationBar(navController: NavController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    BottomNavigation(
-        backgroundColor = Color.White,
-        elevation = 8.dp
-    ) {
-        val items = listOf(
-            BottomNavItem("Home", R.drawable.ic_home, "home_screen"),
-            BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
-            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
-            BottomNavItem("Profile", R.drawable.ic_profile, "profile_screen")
-        )
-
-        items.forEach { item ->
-            val isSelected = currentRoute == item.route
-            BottomNavigationItem(
-                icon = {
-                    Box(
-                        modifier = if (isSelected) {
-                            Modifier
-                                .size(36.dp) // Ukuran lebih besar untuk background bulat
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                )
-                                .padding(6.dp) // Padding agar ikon tidak terlalu besar
-                        } else {
-                            Modifier.size(24.dp)
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = item.icon),
-                            contentDescription = item.label,
-                            tint = if (isSelected) Color.White else Color.Gray,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                },
-                label = {
-                    Text(
-                        text = item.label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
-                    )
-                },
-                selected = isSelected,
-                onClick = {
-                    navController.navigate(item.route) {
-                        // Hindari stack berulang
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
-        }
-    }
-}
-
-// Data class untuk item navigasi
-data class BottomNavItem(val label: String, val icon: Int, val route: String)

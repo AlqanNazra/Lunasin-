@@ -233,7 +233,7 @@ fun PreviewUtangScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Pemberi Pinjaman",
+                                    text = "Penerima Pinjaman",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
