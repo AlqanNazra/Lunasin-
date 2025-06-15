@@ -6,7 +6,7 @@ import com.example.lunasin.Backend.model.Profile
 class ProfileRepository(context: Context) {
     private val prefs = context.getSharedPreferences("profile_prefs", Context.MODE_PRIVATE)
 
-    fun getProfile(): Profile {
+    suspend fun getProfile(): Profile {
         val name   = prefs.getString("name", "") ?: ""
         val addr   = prefs.getString("address", "") ?: ""
         val phone  = prefs.getString("phone", "") ?: ""

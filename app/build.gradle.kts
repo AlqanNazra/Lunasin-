@@ -60,7 +60,7 @@ android {
         getByName("main") {
             java.srcDirs("src/kotlin+java") // Lokasi folder kode sumber Anda
             res.srcDirs("src/res")         // Lokasi folder resource Anda
-            manifest.srcFile("src/AndroidManifest.xml") // Lokasi AndroidManifest.xml Anda
+            manifest.srcFile("src/main/AndroidManifest.xml") // Lokasi AndroidManifest.xml Anda
         }
     }
     // -----------------------------------------------------

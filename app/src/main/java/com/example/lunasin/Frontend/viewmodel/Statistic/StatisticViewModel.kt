@@ -6,10 +6,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.lunasin.Backend.Data.profile_data.ProfileRepository
 import com.example.lunasin.Backend.Data.management_data.HutangRepository
+import com.example.lunasin.Backend.Data.profile_data.ProfileRepository
 import com.example.lunasin.Backend.model.Hutang
-import com.example.lunasin.Backend.model.Profile
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -87,11 +86,11 @@ class StatisticViewModel(
                 val dateRangeText = "${displayDateFormat.format(startDate)} - ${displayDateFormat.format(endDate)}"
 
                 // 2. Ambil Data Profil (Monthly Income)
-                val profile = profileRepository.getUserProfile()
+                val profile = profileRepository.getProfile()
                 val monthlyIncome = profile?.monthlyIncome ?: 0.0
 
                 // 3. Ambil Semua Data Hutang (akan difilter di sisi client)
-                val allHutangList = hutangRepository.getDaftarHutangForUser()
+                val allHutangList = hutangRepository.getDaftarHutang()
 
                 // 4. Proses Data untuk Statistik
                 val (totalExpense, dailyExpense, expenseByCategory) = processExpenseData(allHutangList, startDate, endDate)
