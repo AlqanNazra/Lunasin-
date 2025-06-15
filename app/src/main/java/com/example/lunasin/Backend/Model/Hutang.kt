@@ -3,8 +3,7 @@ package com.example.lunasin.Backend.Model
 // Definisikan enum HutangType di sini
 enum class HutangType {
     TEMAN,
-    PERHITUNGAN,
-    SERIUS
+    PERHITUNGAN
 }
 
 // Definisikan enum StatusBayar untuk status pembayaran
@@ -109,6 +108,7 @@ data class Hutang(
                     is Number -> value.toDouble()
                     else -> 0.0
                 },
+                totalDenda = (map["totalDenda"] as? Number)?.toDouble() ?: 0.0,
                 bunga = (map["bunga"] as? Double) ?: 0.0,
                 lamaPinjaman = (map["lamaPinjaman"] as? Long)?.toInt() ?: 0,
                 totalHutang = (map["totalHutang"] as? Double) ?: 0.0,

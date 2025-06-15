@@ -1,20 +1,24 @@
 package com.example.lunasin.Frontend.ViewModel.Hutang
 
 import android.util.Log
+import com.example.lunasin.Backend.Model.Hutang
+import com.example.lunasin.Backend.Model.HutangType
+import com.example.lunasin.Backend.Model.StatusBayar
 import java.text.NumberFormat
 import java.time.LocalDate
-import java.time.Period
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 object HutangCalculator {
-    // Hitung denda berdasarkan bunga tahunan
-    fun dendaBunga_Tahunan(sisahutang: Double, bunga: Double, telat: Int): Double {
-        val perBunga = bunga / 100
-        val dendaPerHari = perBunga / 365
-        val denda = dendaPerHari * sisahutang
-        return denda * telat
-    }
+    // Formatter untuk parsing tanggal dengan format fleksibel (d/M/yyyy atau dd/MM/yyyy)
+    private val formatter = DateTimeFormatterBuilder()
+        .appendPattern("d/M/yyyy")
+        .optionalStart()
+        .appendPattern("d/MM/yyyy")
+        .optionalEnd()
+        .toFormatter()
 
     // Hitung denda berdasarkan bunga bulanan
     fun dendaBunga_Bulan(sisahutang: Double, bunga: Double, telat: Int): Double {
@@ -24,71 +28,26 @@ object HutangCalculator {
         return denda * telat
     }
 
-    // Denda tetap hanya mengembalikan nilai denda yang diinput
-    fun dendaTetap(denda: Double): Double {
-        return denda
-    }
-
-    // Hitung denda untuk cicilan
-    fun denda_Cicilan(sisahutang: Double, bunga: Double, telat: Int): Double {
-        val perBunga = bunga / 100
-        val denda = perBunga * sisahutang
-        return denda * telat
-    }
-
-    // Hitung jumlah hari keterlambatan berdasarkan tanggal jatuh tempo
-    fun hitungKeterlambatan(tanggalJatuhTempo: String, tanggalSekarang: LocalDate): Int {
+    /**
+     * Menghitung jumlah hari keterlambatan antara tanggal jatuh tempo dan tanggal sekarang.
+     * @param tanggalJatuhTempo Tanggal jatuh tempo dalam format d/M/yyyy atau dd/MM/yyyy
+     * @param tanggalSekarang Tanggal saat ini (default: LocalDate.now())
+     * @return Jumlah hari keterlambatan (positif jika terlambat, negatif jika belum jatuh tempo, 0 jika sama atau error)
+     */
+    fun hitungKeterlambatan(tanggalJatuhTempo: String, tanggalSekarang: LocalDate = LocalDate.now()): Long {
+        if (tanggalJatuhTempo.isBlank()) {
+            Log.e("HutangCalculator", "Tanggal jatuh tempo kosong")
+            return 0L
+        }
         return try {
-            val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
-            val jatuhTempo = possibleFormats.firstNotNullOfOrNull { format ->
-                try {
-                    LocalDate.parse(tanggalJatuhTempo, DateTimeFormatter.ofPattern(format))
-                } catch (e: Exception) {
-                    null
-                }
-            } ?: throw IllegalArgumentException("Format tanggal tidak dikenali")
-
-            if (tanggalSekarang.isAfter(jatuhTempo)) {
-                Period.between(jatuhTempo, tanggalSekarang).days
-            } else {
-                0
-            }
+            val jatuhTempo = LocalDate.parse(tanggalJatuhTempo, formatter)
+            val keterlambatan = ChronoUnit.DAYS.between(jatuhTempo, tanggalSekarang)
+            Log.d("HutangCalculator", "Keterlambatan: $keterlambatan hari (jatuhTempo=$tanggalJatuhTempo, sekarang=$tanggalSekarang)")
+            keterlambatan
         } catch (e: Exception) {
-            Log.e("TanggalError", "Gagal menghitung keterlambatan: $tanggalJatuhTempo", e)
-            0
+            Log.e("HutangCalculator", "Gagal parse tanggalJatuhTempo: $tanggalJatuhTempo", e)
+            0L
         }
-    }
-
-    // Hitung denda per angsuran untuk listTempo
-    fun hitungDendaListTempo(
-        listTempo: List<Map<String, Any>>,
-        nominalPerAngsuran: Double,
-        bunga: Double,
-        tanggalSekarang: LocalDate
-    ): Double {
-        var totalDenda = 0.0
-        val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
-
-        listTempo.forEach { tempo ->
-            val tanggalTempo = tempo["tanggalTempo"] as? String ?: return@forEach
-            val angsuranKe = tempo["angsuranKe"] as? Int ?: return@forEach
-
-            val jatuhTempo = possibleFormats.firstNotNullOfOrNull { format ->
-                try {
-                    LocalDate.parse(tanggalTempo, DateTimeFormatter.ofPattern(format))
-                } catch (e: Exception) {
-                    null
-                }
-            } ?: return@forEach
-
-            if (tanggalSekarang.isAfter(jatuhTempo)) {
-                val telatHari = Period.between(jatuhTempo, tanggalSekarang).days
-                val denda = denda_Cicilan(nominalPerAngsuran, bunga, telatHari)
-                totalDenda += denda
-                Log.d("DendaListTempo", "Angsuran ke-$angsuranKe terlambat $telatHari hari, denda: $denda")
-            }
-        }
-        return totalDenda
     }
 
     // Personaliasi Akun
@@ -132,39 +91,38 @@ object HutangCalculator {
         return result
     }
 
-    fun cicilanPerbulan(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bungaDesimal = bunga / 100.0
-        val bungaR = 1 + bungaDesimal
-        val total1 = nominalPinjaman * bungaDesimal * pangkat(bungaR, lamaPinjam)
-        val total2 = pangkat(bungaR, lamaPinjam) - 1
-        return if (total2 != 0.0) total1 / total2 else nominalPinjaman / lamaPinjam
-    }
-
     fun hitungBunga(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
         val bungaDesimal = bunga / 100.0
         return nominalPinjaman * bungaDesimal * lamaPinjam
     }
 
-    fun hitungTanggalAkhir(tanggalPinjam: String, lamaPinjam: Int): String {
-        return try {
-            val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
-            val tanggalawal = possibleFormats.firstNotNullOfOrNull { format ->
-                try {
-                    LocalDate.parse(tanggalPinjam, DateTimeFormatter.ofPattern(format))
-                } catch (e: Exception) {
-                    null
+    fun hitungTotalHutang(hutang: Hutang, tanggalSekarang: LocalDate = LocalDate.now()): Double {
+        return when (hutang.hutangType) {
+            HutangType.PERHITUNGAN -> {
+                if (hutang.statusBayar == StatusBayar.BELUM_LUNAS) {
+                    val keterlambatan = hitungKeterlambatan(hutang.tanggalJatuhTempo, tanggalSekarang)
+                    if (keterlambatan > 0) {
+                        val denda = hutang.totalDenda
+                        val totalHutang = hutang.nominalpinjaman + denda
+                        Log.d("HutangCalculator", "Hutang PERHITUNGAN terlambat: keterlambatan=$keterlambatan, denda=$denda, nominal=${hutang.nominalpinjaman}, totalHutang=$totalHutang")
+                        totalHutang
+                    } else {
+                        Log.d("HutangCalculator", "Hutang PERHITUNGAN belum jatuh tempo: keterlambatan=$keterlambatan, nominal=${hutang.nominalpinjaman}")
+                        hutang.nominalpinjaman
+                    }
+                } else {
+                    Log.d("HutangCalculator", "Hutang PERHITUNGAN sudah LUNAS, totalHutang=${hutang.nominalpinjaman}")
+                    hutang.nominalpinjaman
                 }
-            } ?: throw IllegalArgumentException("Format tanggal tidak dikenali")
-            val tanggalakhir = tanggalawal.plusMonths(lamaPinjam.toLong())
-            tanggalakhir.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) // Konsisten dengan "dd/MM/yyyy"
-        } catch (e: Exception) {
-            Log.e("TanggalError", "Format tanggal salah: $tanggalPinjam", e)
-            "Format Salah"
+            }
+            HutangType.TEMAN -> {
+                Log.d("HutangCalculator", "Hutang TEMAN: totalHutang=${hutang.nominalpinjaman}, statusBayar=${hutang.statusBayar}")
+                hutang.nominalpinjaman
+            }
+            else -> {
+                Log.e("HutangCalculator", "HutangType tidak valid: ${hutang.hutangType}")
+                hutang.nominalpinjaman
+            }
         }
-    }
-
-    fun hitungTotalHutang(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bungaTotal = hitungBunga(nominalPinjaman, bunga, lamaPinjam)
-        return nominalPinjaman + bungaTotal
     }
 }

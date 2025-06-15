@@ -3,9 +3,10 @@ package com.example.lunasin.Frontend.ViewModel.Hutang
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
+import com.example.lunasin.Backend.Model.StatusBayar
+import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,35 +14,38 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class PiutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
-    private val _piutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
-    val piutangSayaList: StateFlow<List<Hutang>> = _piutangSayaList
+    private val firestore = FirebaseFirestore.getInstance()
 
     private val _piutangState = MutableStateFlow<Hutang?>(null)
     val piutangState: StateFlow<Hutang?> = _piutangState
 
-    private val firestore = FirebaseFirestore.getInstance()
+    private val _piutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
+    val piutangSayaList: StateFlow<List<Hutang>> = _piutangSayaList
 
-    // Fungsi untuk mengambil piutang berdasarkan ID
     fun getPiutangById(docId: String) {
         viewModelScope.launch {
             try {
+                Log.d("PiutangViewModel", "Mencari dokumen dengan docId: $docId")
                 val document = firestore.collection("hutang").document(docId).get().await()
                 if (document.exists()) {
-                    val piutang = Hutang.fromMap(document.data ?: emptyMap()).copy(docId = docId)
+                    val data = document.data ?: emptyMap()
+                    var piutang = Hutang.fromMap(data).copy(docId = document.id)
+                    // Hitung totalHutang
+                    val calculatedTotalHutang = HutangCalculator.hitungTotalHutang(piutang)
+                    piutang = piutang.copy(totalHutang = calculatedTotalHutang)
                     _piutangState.value = piutang
-                    Log.d("FirestoreDebug", "Data piutang berhasil didapat: $piutang")
+                    Log.d("PiutangViewModel", "Piutang ditemukan: docId=${piutang.docId}, totalHutang=$calculatedTotalHutang")
                 } else {
                     _piutangState.value = null
-                    Log.e("Firestore", "Dokumen tidak ditemukan!")
+                    Log.w("PiutangViewModel", "Dokumen tidak ditemukan untuk docId: $docId")
                 }
             } catch (e: Exception) {
                 _piutangState.value = null
-                Log.e("Firestore", "Gagal mengambil data", e)
+                Log.e("PiutangViewModel", "Gagal mengambil piutang: ${e.message}", e)
             }
         }
     }
 
-    // Fungsi untuk mengosongkan hasil pencarian piutang
     fun clearPiutangState() {
         _piutangState.value = null
         Log.d("PiutangViewModel", "Hasil pencarian telah dihapus")
@@ -57,38 +61,45 @@ class PiutangViewModel(private val firestoreService: FirestoreService) : ViewMod
                     .get()
                     .await()
                 Log.d("PiutangViewModel", "Dokumen ditemukan: ${result.documents.size}")
+                val batch = firestore.batch()
                 val daftarPiutang = result.documents.mapNotNull { doc ->
-                    val piutang = Hutang.fromMap(doc.data ?: emptyMap()).copy(docId = doc.id)
+                    val data = doc.data ?: emptyMap()
+                    var piutang = Hutang.fromMap(data).copy(docId = doc.id)
                     Log.d("PiutangViewModel", "Data mentah: ${doc.data}")
-                    if (piutang.type == "Piutang" || doc.data?.containsKey("type") == false) {
-                        piutang.let {
-                            val updatedPiutang = when (it.hutangType) {
-                                HutangType.SERIUS -> it.copy(
-                                    totalHutang = HutangCalculator.hitungTotalHutang(
-                                        it.nominalpinjaman,
-                                        it.bunga,
-                                        it.lamaPinjaman
-                                    )
-                                )
-                                HutangType.TEMAN -> it.copy(
-                                    totalHutang = it.nominalpinjaman
-                                )
-                                HutangType.PERHITUNGAN -> it.copy(
-                                    totalHutang = it.nominalpinjaman + (it.totalDenda ?: 0.0)
-                                )
-                                else -> it
-                            }
-                            Log.d("PiutangViewModel", "Piutang setelah perhitungan: $updatedPiutang")
-                            updatedPiutang
+                    if (piutang.type == "Piutang" || data.containsKey("type") == false) {
+                        // Hitung totalHutang
+                        val calculatedTotalHutang = HutangCalculator.hitungTotalHutang(piutang)
+                        piutang = piutang.copy(totalHutang = calculatedTotalHutang)
+                        // Update Firestore hanya jika BELUM_LUNAS dan keterlambatan > 0
+                        if (piutang.statusBayar == StatusBayar.BELUM_LUNAS &&
+                            HutangCalculator.hitungKeterlambatan(piutang.tanggalJatuhTempo) > 0 &&
+                            calculatedTotalHutang != (data["totalHutang"] as? Double)
+                        ) {
+                            batch.update(
+                                firestore.collection("hutang").document(doc.id),
+                                "totalHutang", calculatedTotalHutang
+                            )
+                            Log.d("PiutangViewModel", "Menjadwalkan update totalHutang: $calculatedTotalHutang untuk docId: ${doc.id}")
                         }
+                        piutang
                     } else {
                         null
                     }
                 }
+                // Commit batch update
+                if (daftarPiutang.isNotEmpty()) {
+                    batch.commit()
+                        .addOnSuccessListener {
+                            Log.d("PiutangViewModel", "Batch update totalHutang berhasil untuk ${daftarPiutang.size} dokumen")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("PiutangViewModel", "Gagal batch update totalHutang: ${e.message}")
+                        }
+                }
                 _piutangSayaList.value = daftarPiutang
                 Log.d("PiutangViewModel", "Daftar piutang setelah hitung: $daftarPiutang")
             } catch (e: Exception) {
-                Log.e("PiutangViewModel", "Gagal ambil piutang", e)
+                Log.e("PiutangViewModel", "Gagal ambil piutang: ${e.message}", e)
                 _piutangSayaList.value = emptyList()
             }
         }
@@ -98,9 +109,10 @@ class PiutangViewModel(private val firestoreService: FirestoreService) : ViewMod
         viewModelScope.launch {
             try {
                 firestore.collection("hutang").document(docId).delete().await()
+                Log.d("PiutangViewModel", "Piutang dihapus: docId=$docId")
                 onSuccess()
             } catch (e: Exception) {
-                Log.e("PiutangViewModel", "Gagal menghapus piutang", e)
+                Log.e("PiutangViewModel", "Gagal hapus piutang: ${e.message}", e)
             }
         }
     }

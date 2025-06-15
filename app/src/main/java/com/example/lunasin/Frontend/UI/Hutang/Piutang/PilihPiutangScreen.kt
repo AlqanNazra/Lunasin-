@@ -91,7 +91,6 @@ fun PilihPiutangScreen(navController: NavController) {
                     items(listOf(
                         Triple("Hutang Teman", "Hutang Biasa", "input_piutang_teman") to Icons.Default.Person,
                         Triple("Hutang Perhitungan", "Hutang dengan tambahan denda telat bayar", "input_piutang_perhitungan") to Icons.Default.Calculate,
-                        Triple("Hutang Serius", "Hutang dengan tambahan bunga dan periode", "input_piutang_serius") to Icons.Default.Money
                     )) { (data, icon) ->
                         val (title, description, route) = data
                         PilihanHutangItem(

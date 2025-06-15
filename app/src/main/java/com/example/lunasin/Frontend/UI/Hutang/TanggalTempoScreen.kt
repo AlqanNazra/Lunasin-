@@ -138,10 +138,6 @@ fun TanggalTempoScreen(viewModel: HutangViewModel, navController: NavController,
             item {
                 hutangState?.let { hutang ->
                     val highlightDates = when (hutang.hutangType) {
-                        HutangType.SERIUS -> {
-                            val tempoDates = hutang.listTempo.map { normalizeDate(it.tanggalTempo) }
-                            listOf(normalizeDate(hutang.tanggalPinjam)) + tempoDates
-                        }
                         else -> {
                             listOf(normalizeDate(hutang.tanggalPinjam), normalizeDate(hutang.tanggalJatuhTempo))
                         }
@@ -299,8 +295,6 @@ fun TanggalTempoScreen(viewModel: HutangViewModel, navController: NavController,
                             Column(modifier = Modifier.padding(16.dp)) {
                                 hutangState?.let { hutang ->
                                     val isTanggalPinjam = normalizeDate(hutang.tanggalPinjam) == date
-                                    val isTanggalTempoSerius = hutang.hutangType == HutangType.SERIUS &&
-                                            hutang.listTempo.any { normalizeDate(it.tanggalTempo) == date }
                                     val isTanggalTempoLain =
                                         (hutang.hutangType == HutangType.TEMAN || hutang.hutangType == HutangType.PERHITUNGAN) &&
                                                 normalizeDate(hutang.tanggalJatuhTempo) == date
@@ -313,7 +307,7 @@ fun TanggalTempoScreen(viewModel: HutangViewModel, navController: NavController,
                                         )
                                     }
 
-                                    if (isTanggalTempoSerius || isTanggalTempoLain) {
+                                    if (isTanggalTempoLain) {
                                         Text(
                                             text = "Tanggal Jatuh Tempo: $date",
                                             fontWeight = FontWeight.Bold,
@@ -357,15 +351,6 @@ fun TanggalTempoScreen(viewModel: HutangViewModel, navController: NavController,
                     ) {
                         Column {
                             when (hutangState?.hutangType) {
-                                HutangType.SERIUS -> {
-                                    hutangState?.listTempo?.forEach { tempo ->
-                                        TempoItem(
-                                            tempo = tempo,
-                                            normalizedDate = normalizeDate(tempo.tanggalTempo),
-                                            today = today
-                                        )
-                                    }
-                                }
                                 HutangType.TEMAN, HutangType.PERHITUNGAN -> {
                                     hutangState?.let { hutang ->
                                         TempoItem(

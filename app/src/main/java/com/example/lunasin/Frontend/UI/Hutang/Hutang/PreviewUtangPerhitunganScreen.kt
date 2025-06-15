@@ -179,7 +179,7 @@ fun PreviewUtangPerhitunganScreen(
                             )
                         }
                         Text(
-                            text = hutang?.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00",
+                            text = hutang?.totalHutang?.let { formatRupiah(it) } ?: "Rp0,00",
                             style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold

@@ -193,10 +193,16 @@ fun PerhitunganPiutangScreen(
                 onValueChange = { input ->
                     val cleanInput = input.replace(".", "").filter { it.isDigit() }
                     totalDenda = if (cleanInput.isNotEmpty()) {
-                        NumberFormat.getInstance(Locale("in", "ID")).format(cleanInput.toLong())
+                        try {
+                            NumberFormat.getInstance(Locale("in", "ID")).format(cleanInput.toLong())
+                        } catch (e: Exception) {
+                            Log.e("PerhitunganPiutangScreen", "Error formatting denda: ${e.message}")
+                            ""
+                        }
                     } else {
                         ""
                     }
+                    Log.d("PerhitunganPiutangScreen", "Denda setelah input: $totalDenda")
                 },
                 label = { Text("Denda Tetap (Rp)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

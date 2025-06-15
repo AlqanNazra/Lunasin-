@@ -5,17 +5,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -27,21 +30,12 @@ import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
 import com.example.lunasin.Backend.Model.Hutang
 import com.example.lunasin.Backend.Model.HutangType
 import com.example.lunasin.Frontend.ViewModel.Hutang.PiutangViewModel
 import com.example.lunasin.theme.Black
 import kotlinx.coroutines.launch
 
-/**
- * Composable untuk menampilkan daftar piutang pengguna.
- * @param piutangViewModel ViewModel untuk mengelola data piutang
- * @param navController NavController untuk navigasi antar screen
- */
 @Composable
 fun ListPiutangScreen(
     piutangViewModel: PiutangViewModel,
@@ -55,7 +49,6 @@ fun ListPiutangScreen(
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
-    // Ambil data piutang saya saat screen ditampilkan
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
@@ -66,7 +59,6 @@ fun ListPiutangScreen(
         }
     }
 
-    // Amati perubahan hasilCari untuk menampilkan pesan
     LaunchedEffect(hasilCari) {
         if (isLoading) {
             isLoading = false
@@ -84,7 +76,7 @@ fun ListPiutangScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background, // Menggunakan background dari tema (Grey99)
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate("pilih_piutang") },
@@ -102,7 +94,6 @@ fun ListPiutangScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Header dengan background putih dan garis tipis
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -136,7 +127,6 @@ fun ListPiutangScreen(
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.Start
             ) {
-                // Judul
                 Text(
                     text = "Daftar Piutang Saya",
                     style = MaterialTheme.typography.headlineSmall,
@@ -150,7 +140,6 @@ fun ListPiutangScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // 🔍 Search Bar
                 OutlinedTextField(
                     value = searchId,
                     onValueChange = { searchId = it },
@@ -180,7 +169,6 @@ fun ListPiutangScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Tombol Cari
                 val isButtonEnabled = searchId.isNotBlank() && !isLoading
                 Button(
                     onClick = {
@@ -214,7 +202,6 @@ fun ListPiutangScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔁 Hasil Pencarian
                 hasilCari?.let { piutang ->
                     Text(
                         "Hasil Pencarian",
@@ -231,7 +218,6 @@ fun ListPiutangScreen(
                     )
                 }
 
-                // Daftar Piutang Saya
                 Text(
                     "Piutang Saya",
                     style = MaterialTheme.typography.titleMedium,
@@ -291,20 +277,28 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
+    // Log debugging
+    LaunchedEffect(piutang) {
+        Log.d(
+            "ListPiutangScreen",
+            "PiutangItem: docId=${piutang.docId}, totalHutang=${piutang.totalHutang}, " +
+                    "totalDenda=${piutang.totalDenda}, nominalpinjaman=${piutang.nominalpinjaman}, " +
+                    "statusBayar=${piutang.statusBayar}, tanggalJatuhTempo=${piutang.tanggalJatuhTempo}"
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .clickable {
                 if (piutang.docId.isNotEmpty()) {
-                    // Navigasi berdasarkan hutangType
                     when (piutang.hutangType) {
                         HutangType.TEMAN -> navController.navigate("piutang_teman_preview/${piutang.docId}")
                         HutangType.PERHITUNGAN -> navController.navigate("piutang_perhitungan_preview/${piutang.docId}")
-                        HutangType.SERIUS -> navController.navigate("piutang_serius_preview/${piutang.docId}")
                         else -> {
                             Log.e("ListPiutangScreen", "Tipe piutang tidak dikenali: ${piutang.hutangType}")
-                            navController.navigate("piutang_teman_preview/${piutang.docId}") // Fallback ke Teman
+                            navController.navigate("piutang_teman_preview/${piutang.docId}")
                         }
                     }
                 } else {
@@ -322,7 +316,6 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ikon dekoratif di sisi kiri
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -337,9 +330,7 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                         fontWeight = FontWeight.Bold
                     )
                 }
-
                 Spacer(modifier = Modifier.width(12.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = piutang.namapinjaman,
@@ -363,9 +354,7 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, color = Black.copy(alpha = 0.7f))
                     )
                 }
-
                 Spacer(modifier = Modifier.width(8.dp))
-
                 IconButton(
                     onClick = {
                         clipboardManager.setText(AnnotatedString(piutang.docId))
@@ -380,9 +369,7 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -394,10 +381,9 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                             when (piutang.hutangType) {
                                 HutangType.TEMAN -> navController.navigate("piutang_teman_preview/${piutang.docId}")
                                 HutangType.PERHITUNGAN -> navController.navigate("piutang_perhitungan_preview/${piutang.docId}")
-                                HutangType.SERIUS -> navController.navigate("piutang_serius_preview/${piutang.docId}")
                                 else -> {
                                     Log.e("ListPiutangScreen", "Tipe piutang tidak dikenali: ${piutang.hutangType}")
-                                    navController.navigate("piutang_teman_preview/${piutang.docId}") // Fallback ke Teman
+                                    navController.navigate("piutang_teman_preview/${piutang.docId}")
                                 }
                             }
                         } else {
@@ -410,7 +396,6 @@ fun PiutangItem(piutang: Hutang, navController: NavHostController, piutangViewMo
                 ) {
                     Text("Lihat Detail", style = MaterialTheme.typography.labelMedium)
                 }
-
                 Button(
                     onClick = {
                         val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()

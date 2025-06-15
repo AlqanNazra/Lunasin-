@@ -259,7 +259,7 @@ fun SwipableDebtCards(
                         ) {
                             Text(titles[page], color = Color.White, fontSize = 16.sp)
                             Text(
-                                NumberFormat.getCurrencyInstance(Locale("in", "ID")).format(values[page]),
+                                "Rp ${String.format("%,.0f", values[page])}",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -351,7 +351,7 @@ fun HutangItemMini(hutang: Hutang) {
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "Nominal Pinjaman: ${hutang.nominalpinjaman?.let { String.format("%,.0f", it) } ?: "0"}",
+                text = "Total Hutang: Rp ${String.format("%,.0f", hutang.totalHutang)}",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF3F51B5))
             )
             Text(

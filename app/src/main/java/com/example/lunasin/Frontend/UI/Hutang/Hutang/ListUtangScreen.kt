@@ -115,7 +115,6 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                                         when (hutang.hutangType) {
                                             HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$docId")
                                             HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$docId")
-                                            HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$docId")
                                             else -> {
                                                 Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
                                                 navController.navigate("hutang_teman_preview/$docId") // Fallback
@@ -259,7 +258,6 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                                     when (hutang.hutangType) {
                                         HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$searchId")
                                         HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/$searchId")
-                                        HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$searchId")
                                         else -> navController.navigate("hutang_teman_preview/$searchId")
                                     }
                                 } ?: run {
@@ -446,7 +444,6 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                     when (hutang.hutangType) {
                         HutangType.TEMAN -> navController.navigate("hutang_teman_preview/${hutang.docId}")
                         HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/${hutang.docId}")
-                        HutangType.SERIUS -> navController.navigate("hutang_serius_preview/${hutang.docId}")
                         else -> {
                             Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
                             navController.navigate("hutang_teman_preview/${hutang.docId}") // Fallback ke Teman
@@ -491,7 +488,7 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Nominal: Rp ${String.format("%,.0f", hutang.nominalpinjaman)}",
+                    text = "Total Hutang: Rp ${String.format("%,.0f", hutang.totalHutang)}",
                     style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
                 )
                 Text(

@@ -179,25 +179,6 @@ class NotifikasiUtils(
                     } catch (e: Exception) {
                         Log.e("NotifikasiUtils", "Error parsing tanggalJatuhTempo: ${e.message}")
                     }
-
-                    if (hutangType == HutangType.SERIUS) {
-                        val listTempoRaw = doc.get("listTempo") as? List<Map<String, Any>> ?: emptyList()
-                        val listTempo = listTempoRaw.map { Tempo.fromMap(it) }
-
-                        for (tempo in listTempo) {
-                            try {
-                                val tenggatTempo = LocalDate.parse(tempo.tanggalTempo, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                                if (tenggatTempo in listOf(hariIni, besok, lusa)) {
-                                    val message = "Tenggat pembayaran ke-${tempo.angsuranKe} untuk \"$namapinjaman\" jatuh tempo $tenggatTempo."
-                                    showNotification(context, "Pengingat Angsuran", message)
-                                    sendFCM(context, userId, "Pengingat Angsuran", message)
-                                    hasNotifications = true
-                                }
-                            } catch (e: Exception) {
-                                Log.e("NotifikasiUtils", "Error parsing tanggalTempo: ${e.message}")
-                            }
-                        }
-                    }
                 }
 
                 if (!hasNotifications) {

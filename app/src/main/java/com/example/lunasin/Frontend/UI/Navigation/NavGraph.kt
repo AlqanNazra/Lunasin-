@@ -64,9 +64,6 @@ fun NavGraph(
         composable("input_piutang_teman") {
             TemanPiutangScreen(hutangViewModel, navController)
         }
-        composable("input_piutang_serius") {
-            SeriusPiutangScreen(hutangViewModel, navController)
-        }
         composable("input_piutang_perhitungan") {
             PerhitunganPiutangScreen(hutangViewModel, navController)
         }
@@ -80,14 +77,7 @@ fun NavGraph(
                 navController = navController
             )
         }
-        composable("piutang_serius_preview/{docId}") { backStackEntry ->
-            val docId = backStackEntry.arguments?.getString("docId") ?: ""
-            PreviewPiutangSeriusScreen(
-                docId = docId,
-                viewModel = hutangViewModel,
-                navController = navController
-            )
-        }
+
         composable("piutang_perhitungan_preview/{docId}") { backStackEntry ->
             val docId = backStackEntry.arguments?.getString("docId") ?: ""
             PreviewPiutangPerhitunganScreen(
@@ -108,16 +98,7 @@ fun NavGraph(
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
             PreviewUtangPerhitunganScreen(hutangViewModel, navController, docId, userId)
         }
-        composable("hutang_serius_preview/{docId}") { backStackEntry ->
-            val docId = backStackEntry.arguments?.getString("docId") ?: ""
-            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-            PreviewUtangSeriusScreen(
-                viewModel = hutangViewModel,
-                navController = navController,
-                docId = docId,
-                userId = userId
-            )
-        }
+
         composable("tanggalTempo/{docId}") { backStackEntry ->
             val docId = backStackEntry.arguments?.getString("docId") ?: ""
             TanggalTempoScreen(hutangViewModel, navController, docId)
