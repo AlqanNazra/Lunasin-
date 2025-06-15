@@ -6,20 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.example.lunasin.Backend.model.Hutang
 import com.example.lunasin.Backend.model.Tempo
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungTotalHutang
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
-import androidx.lifecycle.viewModelScope
-import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungTotalHutang
 
 
 class HutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
@@ -155,8 +151,9 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             HutangViewModel.HutangType.SERIUS -> {
                 val tanggalBayar = HutangCalculator.hitungTanggalAkhir(tanggalPinjam, lamaPinjam)
                 val totalHutang = HutangCalculator.hitungTotalHutang(nominalpinjaman, bunga, lamaPinjam)
-                val listTempo = createTempoList(lamaPinjam, calendar, sdf)
                 val totalcicilan = HutangCalculator.cicilanPerbulan(nominalpinjaman, bunga, lamaPinjam)
+                val amountPerAngsuran = totalcicilan
+                val listTempo = createTempoList(lamaPinjam, calendar, sdf, amountPerAngsuran)
 
                 mapOf(
                     "userId" to userId,
@@ -186,7 +183,8 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
             HutangViewModel.HutangType.PERHITUNGAN -> {
                 val totalHutang = HutangCalculator.dendaTetap(nominalpinjaman, bunga)
-                val listTempo = createTempoList(lamaPinjam, calendar, sdf)
+                val amountPerAngsuran = 0.0 // Sesuaikan jika diperlukan
+                val listTempo = createTempoList(lamaPinjam, calendar, sdf, amountPerAngsuran)
 
                 mapOf(
                     "userId" to userId,
@@ -221,14 +219,22 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
 
 
-    private fun createTempoList(lamaPinjam: Int, calendar: Calendar, sdf: SimpleDateFormat): List<Map<String, Any>> {
-        val listTempo = mutableListOf<Map<String, Any>>()
+    private fun createTempoList(
+        lamaPinjam: Int,
+        calendar: Calendar,
+        sdf: SimpleDateFormat,
+        amountPerAngsuran: Double
+    ): List<Map<String, Any?>> {
+        val listTempo = mutableListOf<Map<String, Any?>>()
         for (i in 1..lamaPinjam) {
             calendar.add(Calendar.MONTH, 1)
             listTempo.add(
                 mapOf(
                     "angsuranKe" to i,
-                    "tanggalTempo" to sdf.format(calendar.time)
+                    "tanggalTempo" to sdf.format(calendar.time),
+                    "amount" to amountPerAngsuran,
+                    "paid" to false,
+                    "paymentDate" to null
                 )
             )
         }
@@ -301,7 +307,4 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 }
         }
     }
-
-
-
 }

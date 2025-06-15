@@ -91,6 +91,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("androidx.navigation:navigation-compose:2.7.4")
 
+    //grafik
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
