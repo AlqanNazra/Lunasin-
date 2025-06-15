@@ -2,20 +2,27 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("com.google.gms.google-services")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    // Pastikan versi plugin ini sesuai, ini harusnya sama dengan kotlinCompilerExtensionVersion
+    // atau gunakan versi plugin yang direkomendasikan Compose, misal "1.5.1"
+    id("org.jetbrains.kotlin.plugin.compose") // HAPUS 'version "2.0.0"' jika plugin ini datang dari root project build.gradle.kts
 }
 
 android {
     namespace = "com.example.lunasin"
-    compileSdk = 35
+    compileSdk = 35 // Tetap di 35
 
     buildFeatures {
         compose = true
+        // viewBinding = true // Hapus jika Anda 100% menggunakan Compose UI dan tidak ada lagi XML View Binding
     }
 
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.8.0"
+        // PERHATIKAN INI: Versi kotlinCompilerExtensionVersion harus kompatibel dengan Compose BOM.
+        // Untuk compose-bom:2025.02.00, compiler extension 1.8.0 sangat mungkin tidak kompatibel.
+        // Coba gunakan versi yang lebih baru, misal 1.5.12 atau 1.5.13 yang cocok untuk Compose 1.6.x (versi Compose 1.6.x kompatibel dengan BOM 2025.02.00)
+        // Atau biarkan kosong jika Anda menggunakan plugin compose versi terbaru dan defaultnya cocok.
+        kotlinCompilerExtensionVersion = "1.5.12" // Ganti dengan versi yang kompatibel atau yang paling baru yang direkomendasikan
     }
 
     defaultConfig {
@@ -26,6 +33,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true // Penting untuk Vector Assets
+        }
     }
 
     buildTypes {
@@ -44,81 +54,88 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    // --- PASTIkan BLOK sourceSets INI ADA DAN SESUAI PATH ANDA ---
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("src/kotlin+java") // Lokasi folder kode sumber Anda
+            res.srcDirs("src/res")         // Lokasi folder resource Anda
+            manifest.srcFile("src/AndroidManifest.xml") // Lokasi AndroidManifest.xml Anda
+        }
+    }
+    // -----------------------------------------------------
 }
 
 dependencies {
-    implementation(libs.firebase.storage.ktx)
-    //Jetpack Compose
+    // --- Firebase Core Dependencies ---
+    implementation(platform("com.google.firebase:firebase-bom:33.10.0")) // Firebase Bill of Materials
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-analytics")
+    implementation(libs.firebase.storage.ktx) // Dari libs.versions.toml
+    implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
+
+    // --- Jetpack Compose BOM ---
+    // Gunakan Compose BOM untuk mengelola versi dependencies Compose
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    // core Compose
+    // --- Compose UI, Foundation, Material3 ---
     implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-text")
-
+    implementation("androidx.compose.ui:ui-text") // Untuk komponen teks yang lebih spesifik jika diperlukan
     implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3") // Material Design 3
 
-    // Material Design 3
-    implementation("androidx.compose.material3:material3")
-
-    // Android Studio Preview support
+    // --- Compose Tooling (Preview) ---
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest") // Untuk UI Tests debug
 
-    // UI Tests
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
-
-    // Optional - Included automatically by material, only add when you need
-    // the icons but not the material library (e.g. when using Material3 or a
-    // custom design system based on Foundation)
+    // --- Compose Icon Libraries ---
     implementation("androidx.compose.material:material-icons-core")
-    // Add full set of material icons
     implementation("androidx.compose.material:material-icons-extended")
-    // Integration with activities
-    implementation("androidx.activity:activity-compose:1.10.0")
-    // Integration with ViewModels
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.5")
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    // --- Compose Integration with Activities & ViewModels ---
+    implementation("androidx.activity:activity-compose:1.10.0") // Integrate Compose with Activity
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.5") // ViewModel for Compose
+
+    // --- LiveData Integration with Compose Runtime ---
+    // Ini penting untuk menggunakan .observeAsState() pada LiveData
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.8") // Anda sudah menambahkan ini, bagus
+
+    // --- Kotlin Coroutines ---
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1") // Pastikan versi Android juga
+
+    // --- Compose Navigation ---
+    implementation("androidx.navigation:navigation-compose:2.7.4")
+
+    // --- Hapus MPAndroidChart karena kita akan pakai Compose Canvas/Library Compose Chart ---
+    // implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0") // BARIS INI DIHAPUS
+
+    // --- Coil (Image Loading for Compose) ---
+    implementation ("io.coil-kt:coil-compose:2.4.0")
+
+    // --- Accompanist Pager (Jika masih digunakan) ---
+    implementation("com.google.accompanist:accompanist-pager:0.30.1")
+
+    // --- Kalender Update (Kizito Wose Calendar) ---
+    implementation("com.kizitonwose.calendar:compose:2.3.0")
+
+    // --- QR Code ---
+    implementation ("com.google.zxing:core:3.5.1")
+    implementation ("androidx.core:core-ktx:1.10.1") // Ini sudah cukup standar, mungkin tidak perlu QR library tambahan jika hanya core
+    implementation ("com.journeyapps:zxing-android-embedded:4.3.0") // Jika ini untuk View-based QR scanner, mungkin akan butuh AndroidView di Compose
+
+    // --- Dependencies Umum yang mungkin tidak perlu lagi jika 100% Compose UI ---
+    // implementation(libs.androidx.appcompat) // Hanya jika masih ada AppCompatActivity
+    // implementation(libs.material) // Hanya jika masih ada Material Components for Android Views
+    implementation(libs.androidx.core.ktx) // Ini masih standar dan baik
+
+    // --- Test Dependencies ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("androidx.navigation:navigation-compose:2.7.4")
-
-    //grafik
-    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
-
-    // Import the Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
-    implementation("com.google.firebase:firebase-firestore-ktx:25.1.3")
-
-    // TODO: Add the dependencies for Firebase products you want to use
-    // When using the BoM, don't specify versions in Firebase dependencies
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth-ktx")
-    implementation("com.google.android.gms:play-services-auth:20.7.0") // Google Sign-In
-
-    // kalender Update
-    implementation("com.kizitonwose.calendar:compose:2.3.0")
-
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material:material")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui-text")
-    implementation("androidx.activity:activity-compose") // tetap boleh tanpa versi karena bom juga
-
-    implementation ("io.coil-kt:coil-compose:2.4.0")
-    implementation("com.google.accompanist:accompanist-pager:0.30.1")
-
-    //Qr code
-    implementation ("com.google.zxing:core:3.5.1")
-    implementation ("androidx.core:core-ktx:1.10.1")
-    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
-
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4") // Untuk UI testing Compose
 }

@@ -7,30 +7,40 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-//import com.example.lunasin.Frontend.UI.login.*
+//import com.example.lunasin.Frontend.UI.login.* // Import ini tidak perlu jika hanya pakai LoginScreen, dll
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.UI.Inputhutang.*
 import com.example.lunasin.ui.screens.ForgotPasswordScreen
 import com.example.lunasin.ui.screens.LoginScreen
 import com.example.lunasin.ui.screens.SignUpScreen
-import com.example.lunasin.viewmodel.AuthViewModel
+import com.example.lunasin.viewmodel.AuthViewModel // Menggunakan AuthViewModel yang di root package
 import com.example.lunasin.Frontend.UI.Home.*
 import com.example.lunasin.Frontend.UI.Inputhutang.utang.*
 import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
 import com.google.firebase.auth.FirebaseAuth
 
+// IMPORT TAMBAHAN YANG DIBUTUHKAN UNTUK STATISTIK
+import androidx.lifecycle.viewmodel.compose.viewModel // Untuk viewModel() Composable
+import com.example.lunasin.Backend.Data.profile_data.ProfileRepository // Import Repository
+import com.example.lunasin.Backend.Data.management_data.HutangRepository // Import Repository
+import com.example.lunasin.Frontend.UI.Statistic.StatisticScreen
+import com.example.lunasin.Frontend.viewmodel.Statistic.StatisticViewModel
+import com.example.lunasin.Frontend.viewmodel.Statistic.StatisticViewModelFactory
+import com.example.lunasin.UI.Statistic.StatisticScreen // IMPORT INI UNTUK SCREEN STATISTIK
+import com.google.firebase.firestore.FirebaseFirestore // Untuk inisialisasi Firestore di ViewModelFactory
+
 @Composable
 fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, startDestination: String) {
-    val navController = rememberNavController()
+    val navController = rememberNavController() // rememberNavController() sudah ada di sini
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = Screen.Login.route // Menggunakan Screen.Login.route sebagai startDestination default
     ) {
         composable(Screen.Login.route) {
             LoginScreen(authViewModel, navController)
         }
-        
+
         composable(Screen.SignUp.route) {
             SignUpScreen(authViewModel, navController)
         }
@@ -78,12 +88,6 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
             ListUtangScreen(hutangViewModel, navController)
         }
 
-//        composable("preview_utang/{docId}") { backStackEntry ->
-//            val docId = backStackEntry.arguments?.getString("docId") ?: ""
-//            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-//            PreviewUtangScreen(hutangViewModel, navController, docId, userId)
-//        }
-
         composable(
             route = "preview_utang/{docId}",
             arguments = listOf(navArgument("docId") { type = NavType.StringType })
@@ -97,5 +101,21 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
                 userId = userId
             )
         }
+
+        // --- TAMBAHKAN RUTE UNTUK STATISTIC SCREEN DI SINI ---
+        composable(Screen.Statistic.route) {
+            // Inisialisasi ViewModel Statistik dengan Factory
+            val statisticViewModel: StatisticViewModel = viewModel(
+                factory = StatisticViewModelFactory(
+                    profileRepository = ProfileRepository(),
+                    hutangRepository = HutangRepository(FirebaseFirestore.getInstance())
+                )
+            )
+            StatisticScreen(
+                navController = navController, // Lewatkan navController ke StatisticScreen
+                statisticViewModel = statisticViewModel // Lewatkan ViewModel yang sudah dibuat
+            )
+        }
+        // ---------------------------------------------------
     }
 }
