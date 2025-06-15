@@ -1,5 +1,6 @@
 package com.example.lunasin.Backend.Data.login_Data
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.AuthResult
@@ -24,10 +25,14 @@ class AuthRepository(private val auth: FirebaseAuth) {
     }
 
     suspend fun signInWithGoogle(idToken: String): AuthResult? {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
         return try {
-            auth.signInWithCredential(credential).await()
+            Log.d("AuthRepo", "Processing token: $idToken")
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = FirebaseAuth.getInstance().signInWithCredential(credential).await()
+            Log.d("AuthRepo", "Sign-in successful: ${authResult.user?.uid}")
+            authResult
         } catch (e: Exception) {
+            Log.e("AuthRepo", "Sign-in failed: ${e.message}", e)
             null
         }
     }

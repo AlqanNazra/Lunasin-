@@ -113,7 +113,7 @@ fun SeriusPiutangScreen(
             OutlinedTextField(
                 value = namaPinjaman,
                 onValueChange = { namaPinjaman = it },
-                label = { Text("Nama Pemberi Pinjaman") },
+                label = { Text("Nama Penerima Pinjaman") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,

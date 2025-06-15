@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import com.example.lunasin.Frontend.UI.Navigation.Screen
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -99,11 +100,21 @@ open class AuthViewModel(private val authRepo: AuthRepository) : ViewModel() {
             }
     }
 
-
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
-            val result = authRepo.signInWithGoogle(idToken)
-            _isAuthenticated.value = result != null
+            Log.d("AuthViewModel", "Mengirim token: $idToken")
+            try {
+                val result = authRepo.signInWithGoogle(idToken)
+                _isAuthenticated.value = result != null
+                if (result != null) {
+                    Log.d("AuthViewModel", "Autentikasi berhasil: ${result.user?.uid ?: "No UID"}")
+                } else {
+                    Log.e("AuthViewModel", "Autentikasi gagal: Hasil null")
+                }
+            } catch (e: Exception) {
+                Log.e("AuthViewModel", "Autentikasi gagal: ${e.message}")
+                _isAuthenticated.value = false
+            }
         }
     }
 

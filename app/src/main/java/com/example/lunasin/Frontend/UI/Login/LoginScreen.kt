@@ -1,5 +1,6 @@
 package com.example.lunasin.ui.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,10 +57,12 @@ fun LoginScreen(authViewModel: AuthViewModel, navController: NavController) {
         try {
             val account = task.getResult(ApiException::class.java)
             account?.idToken?.let { token ->
+                Log.d("GoogleSignIn", "Token: $token")
                 authViewModel.signInWithGoogle(token)
             }
         } catch (e: ApiException) {
-            Toast.makeText(context, "Google Sign-In gagal: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e("GoogleSignIn", "Gagal: ${e.statusCode} - ${e.message}")
+            Toast.makeText(context, "Google Sign-In gagal: ${e.statusCode} - ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
     Scaffold(
