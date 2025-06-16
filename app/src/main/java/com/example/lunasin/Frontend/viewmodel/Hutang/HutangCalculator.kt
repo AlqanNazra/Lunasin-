@@ -1,124 +1,80 @@
 package com.example.lunasin.Frontend.viewmodel.Hutang
 
-import android.util.Log
 import java.text.NumberFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import kotlin.math.pow
 
 object HutangCalculator {
-    // Hitung denda
-    fun dendaBunga_Tahunan(sisahutang:Double, bunga:Double, telat:Int): Double
-    {
-        val  Per_bunga = bunga / 100
-        val denda1 = Per_bunga/365
-        val denda2 = denda1 * sisahutang
-        return denda2 * telat
+
+    // DIUBAH: Nama fungsi diubah ke camelCase
+    fun hitungDendaBungaTahunan(sisaHutang: Double, bungaTahunan: Double, hariTelat: Int): Double {
+        val bungaPerSeratus = bungaTahunan / 100
+        val dendaPerHari = bungaPerSeratus / 365
+        val dendaDariPokok = dendaPerHari * sisaHutang
+        return dendaDariPokok * hariTelat
     }
 
-    fun dendaBunga_Bulan(sisahutang:Double, bunga:Double, telat:Int): Double
-    {
-        val  Per_bunga = bunga / 100
-        val denda1 = Per_bunga/12
-        val denda2 = denda1 * sisahutang
-        return denda2 * telat
+    // DIUBAH: Nama fungsi diubah ke camelCase
+    fun hitungDendaBungaBulanan(sisaHutang: Double, bungaTahunan: Double, bulanTelat: Int): Double {
+        val bungaPerSeratus = bungaTahunan / 100
+        val dendaPerBulan = bungaPerSeratus / 12
+        val dendaDariPokok = dendaPerBulan * sisaHutang
+        return dendaDariPokok * bulanTelat
     }
 
-    fun dendaTetap (denda : Double, Telat : Double) : Double
-    {
-        return denda + Telat
+    // DIUBAH: Nama fungsi dan parameter diubah ke camelCase
+    fun hitungDendaTetap(denda: Double, telat: Double): Double {
+        return denda + telat
     }
 
-    fun denda_Cicilan(sisahutang:Double, bunga:Double, telat:Int): Double
-    {
-        val  Per_bunga = bunga / 100
-        val denda1 = Per_bunga * sisahutang
-        return denda1 * telat
+    // DIUBAH: Menggunakan .pow() untuk efisiensi dan kejelasan
+    fun hitungCicilanPerbulan(nominalPinjaman: Double, bungaTahunan: Double, lamaPinjamBulan: Int): Double {
+        if (lamaPinjamBulan == 0) return 0.0
+
+        val bungaBulanan = (bungaTahunan / 100) / 12
+        if (bungaBulanan == 0.0) return nominalPinjaman / lamaPinjamBulan
+
+        val pembilang = nominalPinjaman * bungaBulanan * (1 + bungaBulanan).pow(lamaPinjamBulan)
+        val penyebut = (1 + bungaBulanan).pow(lamaPinjamBulan) - 1
+
+        return if (penyebut != 0.0) pembilang / penyebut else 0.0
     }
 
-    // Personaliasi Akun
-    fun Debt_to_Income(Totalpembayaran: Double, Pendapatan: Double): String {
-        val dti = (Totalpembayaran / Pendapatan) * 100
-        return if (dti >= 40) {
-            "Warning: DTI Anda $dti% - Risiko tinggi!"
-        } else {
-            "Aman: DTI Anda $dti% - Keuangan stabil."
-        }
+    // DIUBAH: Nama fungsi diubah ke camelCase
+    fun hitungTotalBunga(nominalPinjaman: Double, bungaTahunan: Double, lamaPinjamBulan: Int): Double {
+        val cicilan = hitungCicilanPerbulan(nominalPinjaman, bungaTahunan, lamaPinjamBulan)
+        val totalPembayaran = cicilan * lamaPinjamBulan
+        return totalPembayaran - nominalPinjaman
     }
 
-    fun debt_Service_Coverage_Ratio(pendapatan: Double,totalcicilan: Double): String {
-        val dscr = totalcicilan / pendapatan
-        return if (dscr >= 1)
-        {
-            "Aman : Resiko Gagal bayar aman"
-        }
-        else
-        {
-            "Warning: Resiko Gagal bayar tinggi."
-        }
+    // --- FUNGSI PALING PENTING YANG DIPERBAIKI ---
+    // Menerima Calendar, mengembalikan Date untuk mengatasi crash
+    fun hitungTanggalAkhir(startCalendar: Calendar, lamaPinjamBulan: Int): Date {
+        // clone() penting agar tidak mengubah tanggal asli di ViewModel
+        val calendar = startCalendar.clone() as Calendar
+        calendar.add(Calendar.MONTH, lamaPinjamBulan)
+        return calendar.time // Kembalikan sebagai objek Date
     }
 
-    fun rumus_Amorsiasi(angsuranPerbulan: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bunga1 = bunga/100
-        val total1 = 1 + bunga1
-        val total2_pembagi = pangkat(total1,lamaPinjam) - 1
+    // DIUBAH: Nama fungsi diubah ke camelCase
+    fun hitungTotalHutang(nominalPinjaman: Double, bungaTahunan: Double, lamaPinjamBulan: Int): Double {
+        val totalBunga = hitungTotalBunga(nominalPinjaman, bungaTahunan, lamaPinjamBulan)
+        return nominalPinjaman + totalBunga
+    }
 
-        val total1_penyebut = pangkat(total1,lamaPinjam)
-        val total2_penyebut = total1_penyebut * bunga1 * angsuranPerbulan
-
-        return total2_penyebut/total2_pembagi
+    // DIUBAH: Fungsi ini sekarang mengembalikan Double, bukan String.
+    // Logika untuk menampilkan "Warning/Aman" sebaiknya ada di UI/ViewModel.
+    fun hitungDebtToIncomeRatio(totalPembayaranBulanan: Double, pendapatanBulanan: Double): Double {
+        if (pendapatanBulanan == 0.0) return Double.POSITIVE_INFINITY
+        return (totalPembayaranBulanan / pendapatanBulanan) * 100
     }
 
     fun formatRupiah(amount: Double): String {
-        val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
+        val localeID = Locale("in", "ID")
+        val formatter = NumberFormat.getCurrencyInstance(localeID)
+        formatter.maximumFractionDigits = 0
         return formatter.format(amount)
-    }
-
-    fun pangkat(base: Double, exponent: Int): Double {
-        var result = 1.0
-        for (i in 1..exponent) {
-            result *= base
-        }
-        return result
-    }
-
-    fun cicilanPerbulan(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bungaDesimal = bunga / 100.0
-        val bungaR = 1 + bungaDesimal
-
-        val total1 = nominalPinjaman * bungaDesimal * pangkat(bungaR, lamaPinjam)
-        val total2 = pangkat(bungaR, lamaPinjam) - 1
-
-        return if (total2 != 0.0) total1 / total2 else nominalPinjaman / lamaPinjam
-    }
-
-    fun hitungBunga(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bungaDesimal = bunga / 100.0
-        return nominalPinjaman * bungaDesimal * lamaPinjam
-    }
-
-    fun hitungTanggalAkhir(tanggalPinjam: String, lamaPinjam: Int): String {
-        return try {
-            val possibleFormats = listOf("d/M/yyyy", "dd/MM/yyyy")
-
-            val tanggalawal = possibleFormats.firstNotNullOfOrNull { format ->
-                try {
-                    LocalDate.parse(tanggalPinjam, DateTimeFormatter.ofPattern(format))
-                } catch (e: Exception) {
-                    null
-                }
-            } ?: throw IllegalArgumentException("Format tanggal tidak dikenali")
-
-            val tanggalakhir = tanggalawal.plusMonths(lamaPinjam.toLong())
-            tanggalakhir.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-        } catch (e: Exception) {
-            Log.e("TanggalError", "Format tanggal salah: $tanggalPinjam", e)
-            "Format Salah"
-        }
-    }
-
-    fun hitungTotalHutang(nominalPinjaman: Double, bunga: Double, lamaPinjam: Int): Double {
-        val bungaTotal = hitungBunga(nominalPinjaman, bunga, lamaPinjam)
-        return nominalPinjaman + bungaTotal
     }
 }

@@ -5,36 +5,35 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lunasin.Backend.Service.management_BE.FirestoreService
 import com.example.lunasin.Backend.model.Hutang
-import com.example.lunasin.Backend.model.Tempo
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungCicilanPerbulan
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungDendaTetap
+import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungTanggalAkhir
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator.hitungTotalHutang
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
-
 class HutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
-    enum class HutangType {
-        SERIUS,
-        TEMAN,
-        PERHITUNGAN
-    }
+
+    enum class HutangType { SERIUS, TEMAN, PERHITUNGAN }
+
     private val _hutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
     val hutangSayaList: StateFlow<List<Hutang>> = _hutangSayaList
 
     private val _piutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
     val piutangSayaList: StateFlow<List<Hutang>> = _piutangSayaList
 
-
     private val firestore = FirebaseFirestore.getInstance()
     private val _hutangState = MutableStateFlow<Hutang?>(null)
     val hutangState: StateFlow<Hutang?> = _hutangState
-
 
     private val _hutangList = MutableStateFlow<List<Hutang>>(emptyList())
     val hutangList: StateFlow<List<Hutang>> = _hutangList
@@ -44,19 +43,10 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             try {
                 val document = firestore.collection("hutang").document(docId).get().await()
                 if (document.exists()) {
-                    val hutang = document.toObject(Hutang::class.java)
-
-                    val tempoList = (document["listTempo"] as? List<Map<String, Any>>)?.map { tempo ->
-                        Tempo(
-                            angsuranKe = (tempo["angsuranKe"] as? Long)?.toInt() ?: 0,
-                            tanggalTempo = tempo["tanggalTempo"] as? String ?: ""
-                        )
-                    } ?: emptyList()
-
-                    val hutangDenganTempo = hutang?.copy(listTempo = tempoList)
-
-                    _hutangState.value = hutangDenganTempo
-                    Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutangDenganTempo")
+                    // Dengan @DocumentId di Hutang.kt, ini akan mengisi docId secara otomatis
+                    val hutang = document.toObject<Hutang>()
+                    _hutangState.value = hutang
+                    Log.d("FirestoreDebug", "Data hutang berhasil didapat: $hutang")
                 } else {
                     Log.e("Firestore", "Dokumen tidak ditemukan!")
                 }
@@ -68,14 +58,9 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
     fun klaimHutang(idHutang: String, idPenerima: String) {
         val hutangRef = firestore.collection("hutang").document(idHutang)
-
         hutangRef.update("id_penerima", idPenerima)
-            .addOnSuccessListener {
-                Log.d("KlaimHutang", "Hutang berhasil diklaim oleh $idPenerima")
-            }
-            .addOnFailureListener {
-                Log.e("KlaimHutang", "Gagal klaim hutang", it)
-            }
+            .addOnSuccessListener { Log.d("KlaimHutang", "Hutang berhasil diklaim oleh $idPenerima") }
+            .addOnFailureListener { e -> Log.e("KlaimHutang", "Gagal klaim hutang", e) }
     }
 
     fun ambilDataHutang(userId: String) {
@@ -84,77 +69,49 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener { result ->
-                    val daftarHutang = result.documents.mapNotNull { doc ->
-                        doc.toObject(Hutang::class.java)?.copy(docId = doc.id) // Pastikan docId diambil
-                    }
-                    _hutangList.value = daftarHutang
-                    Log.d("HutangViewModel", "Data hutang berhasil diambil: $daftarHutang")
+                    _hutangList.value = result.documents.mapNotNull { it.toObject<Hutang>() }
                 }
-                .addOnFailureListener { e ->
-                    Log.e("HutangViewModel", "Gagal mengambil data hutang", e)
-                }
-        }
-    }
-
-
-
-    fun tambahHutang(hutang: Hutang) {
-        viewModelScope.launch {
-            val user = FirebaseAuth.getInstance().currentUser
-            if (user != null) {
-                val hutangDenganUserId = hutang.copy(userId = user.uid)
-                firestoreService.simpanHutang(hutangDenganUserId) { sukses ->
-                    if (sukses) {
-                        Log.d("HutangViewModel", "Hutang berhasil disimpan dengan userId: ${user.uid}")
-                    } else {
-                        Log.e("HutangViewModel", "Gagal menyimpan hutang ke Firestore")
-                    }
-                }
-            } else {
-                Log.e("HutangViewModel", "Gagal menyimpan hutang: User tidak ditemukan")
-            }
+                .addOnFailureListener { e -> Log.e("HutangViewModel", "Gagal mengambil data hutang", e) }
         }
     }
 
     fun hitungDanSimpanHutang(
-        hutangType: HutangViewModel.HutangType,
+        hutangType: HutangType,
         namapinjaman: String,
         nominalpinjaman: Double,
         bunga: Double,
         lamaPinjam: Int,
-        tanggalPinjam: String,
+        tanggalPinjamString: String,
         catatan: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user == null) {
-            Log.e("FirestoreError", "User belum login, tidak bisa menyimpan hutang")
             onResult(false, null)
             return
         }
-
         val userId = user.uid
-        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        val calendar = Calendar.getInstance()
-        val parsedDate = sdf.parse(tanggalPinjam)
-        if (parsedDate == null) {
-            Log.e("FirestoreError", "Gagal mengonversi tanggal")
+
+        val formatter = SimpleDateFormat("d/M/yyyy", Locale.getDefault())
+        val tanggalPinjamDate: Date = try {
+            formatter.parse(tanggalPinjamString) ?: run {
+                onResult(false, null)
+                return
+            }
+        } catch (e: Exception) {
             onResult(false, null)
             return
         }
-        calendar.time = parsedDate
 
+        val calendar = Calendar.getInstance().apply { time = tanggalPinjamDate }
         val db = FirebaseFirestore.getInstance()
-        val hutangCollection = db.collection("hutang")
 
         val hutangData: Map<String, Any> = when (hutangType) {
-            HutangViewModel.HutangType.SERIUS -> {
-                val tanggalBayar = HutangCalculator.hitungTanggalAkhir(tanggalPinjam, lamaPinjam)
-                val totalHutang = HutangCalculator.hitungTotalHutang(nominalpinjaman, bunga, lamaPinjam)
-                val totalcicilan = HutangCalculator.cicilanPerbulan(nominalpinjaman, bunga, lamaPinjam)
-                val amountPerAngsuran = totalcicilan
-                val listTempo = createTempoList(lamaPinjam, calendar, sdf, amountPerAngsuran)
-
+            HutangType.SERIUS -> {
+                val tanggalBayarDate = hitungTanggalAkhir(calendar, lamaPinjam)
+                val totalHutang = hitungTotalHutang(nominalpinjaman, bunga, lamaPinjam)
+                val totalCicilan = hitungCicilanPerbulan(nominalpinjaman, bunga, lamaPinjam)
+                val listTempo = createTempoList(lamaPinjam, calendar, totalCicilan)
                 mapOf(
                     "userId" to userId,
                     "namapinjaman" to namapinjaman,
@@ -162,53 +119,49 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                     "bunga" to bunga,
                     "lamaPinjaman" to lamaPinjam,
                     "totalHutang" to totalHutang,
-                    "tanggalPinjam" to tanggalPinjam,
-                    "tanggalBayar" to tanggalBayar,
+                    "tanggalPinjam" to tanggalPinjamDate,
+                    "tanggalBayar" to tanggalBayarDate,
                     "listTempo" to listTempo,
                     "catatan" to catatan,
-                    "totalcicilan" to totalcicilan,
+                    "totalcicilan" to totalCicilan,
+                    "id_penerima" to ""
                 )
             }
-
-            HutangViewModel.HutangType.TEMAN -> {
+            HutangType.TEMAN -> {
                 mapOf(
                     "userId" to userId,
                     "namapinjaman" to namapinjaman,
                     "nominalpinjaman" to nominalpinjaman,
-                    "tanggalPinjam" to tanggalPinjam,
+                    "tanggalPinjam" to tanggalPinjamDate,
                     "catatan" to catatan,
                     "id_penerima" to ""
                 )
             }
-
-            HutangViewModel.HutangType.PERHITUNGAN -> {
-                val totalHutang = HutangCalculator.dendaTetap(nominalpinjaman, bunga)
-                val amountPerAngsuran = 0.0 // Sesuaikan jika diperlukan
-                val listTempo = createTempoList(lamaPinjam, calendar, sdf, amountPerAngsuran)
-
+            HutangType.PERHITUNGAN -> {
+                val tanggalBayarDate = hitungTanggalAkhir(calendar, lamaPinjam)
+                val totalHutang = hitungDendaTetap(nominalpinjaman, bunga)
+                val listTempo = createTempoList(lamaPinjam, calendar, 0.0)
                 mapOf(
                     "userId" to userId,
                     "namapinjaman" to namapinjaman,
                     "nominalpinjaman" to nominalpinjaman,
                     "totalHutang" to totalHutang,
-                    "tanggalPinjam" to tanggalPinjam,
+                    "tanggalPinjam" to tanggalPinjamDate,
+                    "tanggalBayar" to tanggalBayarDate,
                     "listTempo" to listTempo,
-                    "catatan" to catatan
+                    "catatan" to catatan,
+                    "id_penerima" to ""
                 )
             }
         }
-        hutangCollection.add(hutangData)
+
+        // --- INI BAGIAN YANG DIPERBAIKI ---
+        db.collection("hutang").add(hutangData)
             .addOnSuccessListener { documentReference ->
-                val docId = documentReference.id
-                documentReference.update("docId", docId)
-                    .addOnSuccessListener {
-                        Log.d("FirestoreSuccess", "Hutang berhasil disimpan dengan docId: $docId")
-                        onResult(true, docId)
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("FirestoreError", "Gagal menyimpan docId", e)
-                        onResult(false, null)
-                    }
+                // Kita tidak lagi melakukan .update() untuk menyimpan "docId" secara manual.
+                // Cukup kembalikan ID yang didapat dari documentReference.
+                Log.d("FirestoreSuccess", "Hutang berhasil disimpan dengan docId: ${documentReference.id}")
+                onResult(true, documentReference.id)
             }
             .addOnFailureListener { e ->
                 Log.e("FirestoreError", "Gagal menyimpan data hutang", e)
@@ -216,22 +169,19 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
             }
     }
 
-
-
-
     private fun createTempoList(
         lamaPinjam: Int,
-        calendar: Calendar,
-        sdf: SimpleDateFormat,
+        startCalendar: Calendar,
         amountPerAngsuran: Double
     ): List<Map<String, Any?>> {
         val listTempo = mutableListOf<Map<String, Any?>>()
+        val calendar = startCalendar.clone() as Calendar
         for (i in 1..lamaPinjam) {
             calendar.add(Calendar.MONTH, 1)
             listTempo.add(
                 mapOf(
                     "angsuranKe" to i,
-                    "tanggalTempo" to sdf.format(calendar.time),
+                    "tanggalTempo" to calendar.time,
                     "amount" to amountPerAngsuran,
                     "paid" to false,
                     "paymentDate" to null
@@ -243,12 +193,8 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
 
     fun hapusHutang(documentId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val result = firestoreService.hapusHutang(documentId)
-            if (result) {
-                Log.d("HapusHutang", "Hutang dengan docId $documentId berhasil dihapus.")
-                onSuccess() // Panggil ulang pengambilan data setelah sukses
-            } else {
-                Log.e("HapusHutang", "Gagal menghapus hutang dengan docId: $documentId")
+            if (firestoreService.hapusHutang(documentId)) {
+                onSuccess()
             }
         }
     }
@@ -259,24 +205,9 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 .whereEqualTo("id_penerima", userId)
                 .get()
                 .addOnSuccessListener { result ->
-                    val daftarHutang = result.documents.mapNotNull { doc ->
-                        val hutang = doc.toObject(Hutang::class.java)?.copy(docId = doc.id)
-                        hutang?.let {
-                            it.copy(
-                                totalHutang = hitungTotalHutang(
-                                    it.nominalpinjaman ?: 0.0,
-                                    it.bunga ?: 0.0,
-                                    it.lamaPinjaman ?: 0
-                                )
-                            )
-                        }
-                    }
-                    Log.d("HutangViewModel", "Daftar hutang setelah hitung: $daftarHutang")
-                    _hutangSayaList.value = daftarHutang
+                    _hutangSayaList.value = result.documents.mapNotNull { it.toObject<Hutang>() }
                 }
-                .addOnFailureListener {
-                    Log.e("HutangViewModel", "Gagal ambil hutang", it)
-                }
+                .addOnFailureListener { e -> Log.e("HutangViewModel", "Gagal ambil hutang saya", e) }
         }
     }
 
@@ -287,24 +218,9 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
                 .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener { result ->
-                    val daftarPiutang = result.documents.mapNotNull { doc ->
-                        val hutang = doc.toObject(Hutang::class.java)?.copy(docId = doc.id)
-                        hutang?.let {
-                            it.copy(
-                                totalHutang = hitungTotalHutang(
-                                    it.nominalpinjaman ?: 0.0,
-                                    it.bunga ?: 0.0,
-                                    it.lamaPinjaman ?: 0
-                                )
-                            )
-                        }
-                    }
-                    Log.d("HutangViewModel", "Daftar piutang setelah hitung: $daftarPiutang")
-                    _piutangSayaList.value = daftarPiutang
+                    _piutangSayaList.value = result.documents.mapNotNull { it.toObject<Hutang>() }
                 }
-                .addOnFailureListener {
-                    Log.e("HutangViewModel", "Gagal ambil piutang", it)
-                }
+                .addOnFailureListener { e -> Log.e("HutangViewModel", "Gagal ambil piutang saya", e) }
         }
     }
 }

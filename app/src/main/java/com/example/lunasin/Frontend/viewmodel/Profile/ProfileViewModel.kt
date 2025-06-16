@@ -9,6 +9,8 @@ import androidx.lifecycle.AndroidViewModel
 import com.example.lunasin.Backend.Data.profile_data.ProfileRepository
 import com.example.lunasin.Backend.model.Profile
 import com.google.firebase.auth.FirebaseAuth
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 
 class ProfileViewModel(app: Application) : AndroidViewModel(app) {
     private val repo = ProfileRepository(app)
@@ -28,10 +30,15 @@ class ProfileViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     init {
-        loadProfile()
+        // Langsung gunakan viewModelScope yang sudah disediakan secara otomatis.
+        // Tidak perlu dibuat lagi.
+        viewModelScope.launch {
+            loadProfile()
+        }
     }
 
-    private fun loadProfile() {
+    private suspend fun loadProfile() {
+        Log.d("ProfileViewModel", "Loading profile...")
         val p: Profile = repo.getProfile()
         Log.d("ProfileViewModel", "Loaded Profile: $p")
         if (p.name.isBlank()) {

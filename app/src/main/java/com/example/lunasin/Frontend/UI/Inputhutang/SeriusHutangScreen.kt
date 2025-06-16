@@ -1,16 +1,36 @@
 package com.example.lunasin.Frontend.UI.Inputhutang
 
+// DIUBAH KE M3: Mengganti semua import ke material3
 import android.app.DatePickerDialog
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -18,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import kotlinx.coroutines.delay
-import java.util.*
+import java.util.Calendar
 
 @Composable
 fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavController) {
@@ -48,52 +68,50 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
         ).show()
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Masukkan Data", fontSize = 20.sp, color = Color(0xFF008D36))
-        Text("Luna butuh info-info ini buat bisa catat hutang kamu", fontSize = 14.sp)
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // DIUBAH KE M3: Menggunakan warna dari tema
+        Text("Masukkan Data Hutang", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
+        Text("Lengkapi informasi di bawah untuk mencatat utang dengan bunga.", fontSize = 14.sp)
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Input Nama Pinjaman
+        // DIUBAH KE M3: Menggunakan komponen Material3
         OutlinedTextField(
             value = namaPinjaman,
             onValueChange = { namaPinjaman = it },
             label = { Text("Nama Pinjaman") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Nominal Pinjaman
         OutlinedTextField(
-            value = nominalPinjaman.toString(),
-            onValueChange = {
-                if (it.all { char -> char.isDigit() }) nominalPinjaman = it
-            },
+            value = nominalPinjaman, // Disederhanakan: tidak perlu .toString()
+            onValueChange = { if (it.all(Char::isDigit)) nominalPinjaman = it },
             label = { Text("Nominal Pinjaman") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Bunga
         OutlinedTextField(
-            value = bunga.toString(),
-            onValueChange = {
-                if (it.all { char -> char.isDigit() || char == '.' }) bunga = it
-            },
+            value = bunga, // Disederhanakan
+            onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) bunga = it },
             label = { Text("Bunga per Bulan (%)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), // Diubah ke Decimal
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Periode Pinjaman
         OutlinedTextField(
-            value = periodePinjaman.toString(),
-            onValueChange = {
-                if (it.all { char -> char.isDigit() }) periodePinjaman = it
-            },
+            value = periodePinjaman, // Disederhanakan
+            onValueChange = { if (it.all(Char::isDigit)) periodePinjaman = it },
             label = { Text("Periode Pinjaman (Bulan)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -111,40 +129,33 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
                 }
             }
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Catatan
         OutlinedTextField(
             value = catatan,
             onValueChange = { catatan = it },
             label = { Text("Catatan") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Tombol Confirm
         Button(
             onClick = {
-                val nominalValue = nominalPinjaman.toDoubleOrNull() ?: 0.0
-                val bungaValue = bunga.toDoubleOrNull() ?: 0.0
-                val periodeValue = periodePinjaman.toIntOrNull() ?: 0
+                val nominalValue = nominalPinjaman.toDoubleOrNull()
+                val bungaValue = bunga.toDoubleOrNull()
+                val periodeValue = periodePinjaman.toIntOrNull()
 
-                if (tanggalPinjam == "Pilih Tanggal") {
-                    Toast.makeText(context, "Harap pilih tanggal pinjaman!", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-
-                if (namaPinjaman.isEmpty()) {
-                    Toast.makeText(context, "Nama pinjaman tidak boleh kosong!", Toast.LENGTH_SHORT).show()
+                if (tanggalPinjam == "Pilih Tanggal" || namaPinjaman.isBlank() || nominalValue == null || bungaValue == null || periodeValue == null) {
+                    Toast.makeText(context, "Semua kolom wajib diisi dengan benar!", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
                 isLoading = true
-                Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
+                Log.d("SeriusHutangScreen", "Mengirim data ke Firestore...")
 
                 hutangViewModel.hitungDanSimpanHutang(
-                    hutangType = HutangViewModel.HutangType.SERIUS
-                    ,namaPinjaman, nominalValue, bungaValue, periodeValue, tanggalPinjam, catatan
+                    hutangType = HutangViewModel.HutangType.SERIUS,
+                    namaPinjaman, nominalValue, bungaValue, periodeValue, tanggalPinjam, catatan
                 ) { success, docId ->
                     isLoading = false
                     if (success && docId != null) {
@@ -161,7 +172,10 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
             enabled = !isLoading
         ) {
             if (isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary // DIUBAH KE M3
+                )
             } else {
                 Text("Confirm")
             }
@@ -169,37 +183,20 @@ fun SeriusHutangScreen(hutangViewModel: HutangViewModel, navController: NavContr
 
         LaunchedEffect(navigateToPreview) {
             navigateToPreview?.let { docId ->
-                showPopup = false
                 delay(500)
-                navController.navigate("preview_hutang/$docId")  // Navigasi ke Preview Hutang
+                navController.navigate("preview_hutang/$docId")
                 navigateToPreview = null
             }
         }
 
-        // Dialog Loading
-        if (isLoading) {
-            AlertDialog(
-                onDismissRequest = { },
-                title = { Text("Mengirim Data...") },
-                text = {
-                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Harap tunggu...")
-                    }
-                },
-                confirmButton = { }
-            )
-        }
-
-        // Popup Notifikasi
-        if (showPopup) {
+        // DIUBAH KE M3: AlertDialog menggunakan sintaks M3
+        if (showPopup && !isLoading) { // Popup tidak ditampilkan saat loading
             AlertDialog(
                 onDismissRequest = { showPopup = false },
                 title = { Text("Status") },
                 text = { Text(popupMessage) },
                 confirmButton = {
-                    Button(onClick = { showPopup = false }) {
+                    TextButton(onClick = { showPopup = false }) {
                         Text("OK")
                     }
                 }

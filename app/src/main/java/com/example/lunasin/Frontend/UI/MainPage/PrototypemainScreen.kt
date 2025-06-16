@@ -1,22 +1,36 @@
 package com.example.lunasin.Frontend.UI.Home
 
-
-import androidx.compose.animation.core.FastOutSlowInEasing
+// DIUBAH: Menambahkan import untuk SimpleDateFormat dan Date
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.pager.VerticalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,30 +38,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.lunasin.Backend.model.Hutang
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.R
+import com.example.lunasin.utils.formatRupiah
 import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.absoluteValue
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
-    val user = FirebaseAuth.getInstance().currentUser // Ambil user untuk displayName
+    val user = FirebaseAuth.getInstance().currentUser
     val hutangSaya by hutangViewModel.hutangSayaList.collectAsState()
     val piutangSaya by hutangViewModel.piutangSayaList.collectAsState()
 
@@ -56,47 +70,44 @@ fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            hutangViewModel.ambilDataHutang(userId)
             hutangViewModel.ambilHutangSaya(userId)
             hutangViewModel.ambilPiutangSaya(userId)
         }
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController) },
-        backgroundColor = MaterialTheme.colorScheme.primary
+        bottomBar = { AppBottomNavigationBar(navController) },
+        containerColor = MaterialTheme.colorScheme.primary
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Teks "Welcome to Lunasin, [Nama Pengguna]" di atas sebelah kiri
             Text(
                 text = "Welcome to Lunasin, ${user?.displayName ?: "Pengguna"}",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White // Warna putih agar kontras dengan background primary
-                ),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
-                    .padding(start = 16.dp, top = 24.dp)
+                    .padding(start = 24.dp, top = 24.dp)
                     .align(Alignment.TopStart)
             )
 
             Card(
-                shape = RoundedCornerShape(topStartPercent = 12, topEndPercent = 12),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.75f)
+                    .fillMaxHeight(0.85f)
                     .align(Alignment.BottomCenter),
-                elevation = 8.dp,
-                backgroundColor = Color.White
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp)
                         .verticalScroll(rememberScrollState())
+                        .padding(24.dp)
                 ) {
                     SwipableDebtCards(
                         totalHutang = totalHutang,
@@ -106,48 +117,36 @@ fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        OptionCard("Hutang", R.drawable.ic_wallet, Color(0xFF4CAF50), Modifier.weight(1f)) {
+                        OptionCard("Hutang", R.drawable.ic_wallet, MaterialTheme.colorScheme.error, Modifier.weight(1f)) {
                             navController.navigate("list_utang_screen")
                         }
-                        OptionCard("Piutang", R.drawable.ic_business, Color(0xFF00BCD4), Modifier.weight(1f)) {
+                        OptionCard("Piutang", R.drawable.ic_business, MaterialTheme.colorScheme.primary, Modifier.weight(1f)) {
                             navController.navigate("list_hutang_screen")
                         }
-                        OptionCard("Laporan", R.drawable.ic_chart, Color(0xFFFF9800), Modifier.weight(1f)) {
-                            navController.navigate("laporan_hutang_screen")
+                        OptionCard("Laporan", R.drawable.ic_chart, MaterialTheme.colorScheme.secondary, Modifier.weight(1f)) {
+                            navController.navigate("statistic_screen")
                         }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Hutang Saya (Saya berhutang ke orang lain)
-                    Text(
-                        "Hutang Saya",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    )
+                    Text("Hutang Saya", style = MaterialTheme.typography.titleLarge)
                     if (hutangSaya.isEmpty()) {
-                        Text("Belum ada hutang", style = MaterialTheme.typography.bodySmall)
+                        Text("Belum ada hutang", style = MaterialTheme.typography.bodyMedium)
                     } else {
-                        hutangSaya.take(3).forEach { hutang ->
-                            HutangItemMini(hutang)
-                        }
+                        hutangSaya.take(3).forEach { hutang -> HutangItemMini(hutang) }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Hutang Teman Saya (Orang lain berhutang ke saya)
-                    Text(
-                        "Hutang Teman Saya",
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    )
+                    Text("Hutang Teman Saya", style = MaterialTheme.typography.titleLarge)
                     if (piutangSaya.isEmpty()) {
-                        Text("Belum ada piutang", style = MaterialTheme.typography.bodySmall)
+                        Text("Belum ada piutang", style = MaterialTheme.typography.bodyMedium)
                     } else {
-                        piutangSaya.take(3).forEach { hutang ->
-                            HutangItemMini(hutang)
-                        }
+                        piutangSaya.take(3).forEach { hutang -> HutangItemMini(hutang) }
                     }
                 }
             }
@@ -155,16 +154,14 @@ fun HomeScreen(navController: NavController, hutangViewModel: HutangViewModel) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SwipableDebtCards(
-    totalHutang: Double,
-    totalPiutang: Double
-) {
+fun SwipableDebtCards(totalHutang: Double, totalPiutang: Double) {
     val pagerState = rememberPagerState(pageCount = { 2 })
-
     val titles = listOf("Total Hutang Anda", "Teman Berhutang ke Anda")
     val values = listOf(totalHutang, totalPiutang)
-    val colors = listOf(Color(0xFF3F51B5), Color(0xFF009688))
+    val colors = listOf(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.primaryContainer)
+    val onColors = listOf(MaterialTheme.colorScheme.onErrorContainer, MaterialTheme.colorScheme.onPrimaryContainer)
 
     Box(
         modifier = Modifier
@@ -172,134 +169,85 @@ fun SwipableDebtCards(
             .height(240.dp)
     ) {
         for (page in 0..1) {
-            val offsetFactor = (page - pagerState.currentPage).toFloat()
+            val offsetFactor = (page - pagerState.currentPage).toFloat() + pagerState.currentPageOffsetFraction
+            val animatedScale by animateFloatAsState(targetValue = 1f - (offsetFactor.absoluteValue * 0.2f), label = "")
+            val animatedAlpha by animateFloatAsState(targetValue = 1f - (offsetFactor.absoluteValue * 0.5f), label = "")
 
-            val animatedOffset by animateFloatAsState(
-                targetValue = offsetFactor * 40f,
-                animationSpec = tween(300, easing = FastOutSlowInEasing),
-                label = "offset"
-            )
-            val animatedScale by animateFloatAsState(
-                targetValue = 1f - (offsetFactor.absoluteValue * 0.05f),
-                animationSpec = tween(300, easing = FastOutSlowInEasing),
-                label = "scale"
-            )
-            val animatedAlpha by animateFloatAsState(
-                targetValue = 1f - (offsetFactor.absoluteValue * 0.2f),
-                animationSpec = tween(300, easing = FastOutSlowInEasing),
-                label = "alpha"
-            )
-
-            Box(
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = colors[page]),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .height(180.dp)
                     .graphicsLayer {
-                        translationY = animatedOffset
                         scaleX = animatedScale
                         scaleY = animatedScale
                         alpha = animatedAlpha
                     }
                     .zIndex(1f - offsetFactor.absoluteValue)
             ) {
-                Card(
-                    shape = RoundedCornerShape(20.dp),
-                    backgroundColor = colors[page],
-                    elevation = 10.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-                        Canvas(modifier = Modifier.matchParentSize()) {
-                            drawCircle(Color.White.copy(alpha = 0.05f), radius = 100f, center = Offset(300f, 40f))
-                            drawCircle(Color.White.copy(alpha = 0.08f), radius = 60f, center = Offset(200f, 130f))
-                        }
-
-                        Column(
-                            verticalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Text(titles[page], color = Color.White, fontSize = 16.sp)
-                            Text(
-                                NumberFormat.getCurrencyInstance(Locale("in", "ID")).format(values[page]),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Perbarui informasi secara berkala",
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)) {
+                    Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
+                        Text(titles[page], color = onColors[page], style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            NumberFormat.getCurrencyInstance(Locale("in", "ID")).format(values[page]),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = onColors[page]
+                        )
+                        Text(
+                            "Geser ke atas/bawah untuk melihat",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = onColors[page].copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
         }
-
         VerticalPager(
             state = pagerState,
-            userScrollEnabled = true,
             modifier = Modifier
                 .matchParentSize()
                 .zIndex(2f)
-                .background(Color.Transparent)
-        ) {}
+        ) {
+            // Biarkan kosong
+        }
     }
 }
 
 @Composable
-fun OptionCard(
-    title: String,
-    iconRes: Int,
-    iconColor: Color = Color.Black,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        backgroundColor = Color.White,
-        modifier = modifier
-            .clickable { onClick() }
-            .padding(4.dp),
-        elevation = 2.dp
+fun OptionCard(title: String, iconRes: Int, iconColor: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Column(
+        modifier = modifier.clickable { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .size(64.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(iconColor.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = title,
-                    tint = iconColor,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                title,
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = title,
+                tint = iconColor,
+                modifier = Modifier.size(32.dp)
             )
         }
+        Text(title, style = MaterialTheme.typography.labelLarge)
     }
+}
+
+// DIUBAH: Membuat fungsi helper untuk format tanggal
+private fun formatDate(date: Date?): String {
+    if (date == null) return "Belum ditentukan"
+    val formatter = SimpleDateFormat("dd MMMM yyyy", Locale("in", "ID"))
+    return formatter.format(date)
 }
 
 @Composable
@@ -307,90 +255,70 @@ fun HutangItemMini(hutang: Hutang) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = 3.dp
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = hutang.namapinjaman,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Total Hutang: ${hutang.totalHutang?.let { String.format("%,.0f", it) } ?: "0"}",
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF3F51B5))
+                text = "Total Hutang: ${hutang.totalHutang?.let { formatRupiah(it) } ?: "Rp0,00"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Jatuh tempo: ${hutang.tanggalBayar.ifEmpty { "Belum ditentukan" }}",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, color = Color.Gray)
+                // DIUBAH: Memanggil fungsi formatDate yang baru, bukan .ifBlank
+                text = "Jatuh tempo: ${formatDate(hutang.tanggalBayar)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun AppBottomNavigationBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    BottomNavigation(
-        backgroundColor = Color.White,
-        elevation = 8.dp
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         val items = listOf(
             BottomNavItem("Home", R.drawable.ic_home, "home_screen"),
             BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
-            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
+            BottomNavItem("Stats", R.drawable.ic_chart, "statistic_screen"),
             BottomNavItem("Profile", R.drawable.ic_profile, "profile_screen")
         )
 
         items.forEach { item ->
             val isSelected = currentRoute == item.route
-            BottomNavigationItem(
-                icon = {
-                    Box(
-                        modifier = if (isSelected) {
-                            Modifier
-                                .size(36.dp) // Ukuran lebih besar untuk background bulat
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                )
-                                .padding(6.dp) // Padding agar ikon tidak terlalu besar
-                        } else {
-                            Modifier.size(24.dp)
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = item.icon),
-                            contentDescription = item.label,
-                            tint = if (isSelected) Color.White else Color.Gray,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                },
-                label = {
-                    Text(
-                        text = item.label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
-                    )
-                },
+            NavigationBarItem(
+                icon = { Icon(painter = painterResource(id = item.icon), contentDescription = item.label) },
+                label = { Text(item.label) },
                 selected = isSelected,
                 onClick = {
                     navController.navigate(item.route) {
-                        // Hindari stack berulang
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         }
     }
 }
 
-// Data class untuk item navigasi
 data class BottomNavItem(val label: String, val icon: Int, val route: String)

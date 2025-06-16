@@ -1,13 +1,36 @@
 package com.example.lunasin.Frontend.UI.Inputhutang
 
-import android.util.Log
-import androidx.compose.foundation.layout.*
+// DIUBAH KE M3: Mengganti semua import ke material3
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,8 +38,8 @@ import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.utils.QrCodeDialogButton
 import com.example.lunasin.utils.formatRupiah
-import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
+@OptIn(ExperimentalMaterial3Api::class) // DIUBAH KE M3
 @Composable
 fun TemanPreviewHutangScreen(
     viewModel: HutangViewModel,
@@ -31,12 +54,16 @@ fun TemanPreviewHutangScreen(
 
     val hutang by viewModel.hutangState.collectAsState()
 
+    // DIUBAH KE M3: Menggunakan Scaffold M3
     Scaffold(
         topBar = {
+            // DIUBAH KE M3: Menggunakan TopAppBar M3 dengan warna dari tema
             TopAppBar(
                 title = { Text("Preview Hutang") },
-                backgroundColor = Color.Blue,
-                contentColor = Color.White
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { padding ->
@@ -47,61 +74,72 @@ fun TemanPreviewHutangScreen(
             contentAlignment = Alignment.Center
         ) {
             if (hutang == null) {
-                CircularProgressIndicator()
+                CircularProgressIndicator() // DIUBAH KE M3
             } else {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()), // Menambahkan scroll
                 ) {
                     Text(
                         text = "Nama: ${hutang?.namapinjaman ?: "Data Kosong"}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(text = "Nominal: ${hutang?.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00"}")
-                    Text(text = "Dari: ${hutang?.tanggalPinjam}")
+                    Text(text = "Tanggal Pinjam: ${hutang?.tanggalPinjam}")
 
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Text(text = "Catatan:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    // DIUBAH KE M3: Menggunakan Card M3
                     Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = 2.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp)
+                            .defaultMinSize(minHeight = 100.dp)
                     ) {
                         Box(modifier = Modifier.padding(16.dp)) {
                             Text(text = hutang?.catatan ?: "Tidak ada catatan")
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.weight(1f)) // Mendorong tombol ke bawah
 
-                    Row(
+                    // DIUBAH KE M3: Tombol disusun dalam Column dan menggunakan warna tema
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Button(
-                            onClick = { navController.popBackStack() },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
-                        ) {
-                            Text("Kembali", color = Color.White)
+                        hutang?.let { data ->
+                            QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
                         }
 
                         Button(
                             onClick = {
-                                navController.navigate("list_hutang_screen")
+                                // Navigasi ke daftar hutang dan membersihkan stack sampai ke home
+                                navController.navigate("list_hutang_screen") {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
                             },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Confirm", color = Color.White)
+                            Text("Confirm & Lihat Laporan")
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
 
-                        hutang?.let { data ->
-                            QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
+                        // Menggunakan OutlinedButton untuk aksi sekunder (Kembali)
+                        OutlinedButton(
+                            onClick = { navController.popBackStack() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Kembali")
                         }
                     }
                 }

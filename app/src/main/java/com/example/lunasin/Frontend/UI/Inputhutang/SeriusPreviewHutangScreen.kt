@@ -1,13 +1,36 @@
 package com.example.lunasin.Frontend.UI.Inputhutang
 
+// DIUBAH KE M3: Mengganti semua import ke material3
 import android.util.Log
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,8 +38,8 @@ import androidx.navigation.NavController
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
 import com.example.lunasin.utils.QrCodeDialogButton
 import com.example.lunasin.utils.formatRupiah
-import com.example.lunasin.Frontend.viewmodel.Hutang.HutangCalculator as hutangca
 
+@OptIn(ExperimentalMaterial3Api::class) // DIUBAH KE M3
 @Composable
 fun SeriusPreviewHutangScreen(
     viewModel: HutangViewModel,
@@ -31,12 +54,16 @@ fun SeriusPreviewHutangScreen(
 
     val hutang by viewModel.hutangState.collectAsState()
 
+    // DIUBAH KE M3: Menggunakan Scaffold M3
     Scaffold(
         topBar = {
+            // DIUBAH KE M3: Menggunakan TopAppBar M3 dengan warna dari tema
             TopAppBar(
                 title = { Text("Preview Hutang") },
-                backgroundColor = Color.Blue,
-                contentColor = Color.White
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     ) { padding ->
@@ -47,35 +74,41 @@ fun SeriusPreviewHutangScreen(
             contentAlignment = Alignment.Center
         ) {
             if (hutang == null) {
-                CircularProgressIndicator()
+                CircularProgressIndicator() // DIUBAH KE M3
             } else {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .fillMaxSize() // Memastikan Column mengisi semua ruang
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()), // Menambahkan scroll
                 ) {
                     Text(
                         text = "Nama: ${hutang?.namapinjaman ?: "Data Kosong"}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text(text = "Nominal: ${hutang?.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00"}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Nominal Pokok: ${hutang?.nominalpinjaman?.let { formatRupiah(it) } ?: "Rp0,00"}")
                     Text(text = "Periode: ${hutang?.lamaPinjaman} Bulan")
                     Text(text = "Dari: ${hutang?.tanggalPinjam} - ${hutang?.tanggalBayar}")
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // DIUBAH KE M3: Menggunakan Card M3
                     Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = 4.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Total Hutang: ${hutangca.formatRupiah(hutang?.totalHutang ?: 0.0)}")
-                            Text(text = "Bunga: ${hutangca.formatRupiah(hutang?.bunga ?: 0.0)}")
-                            Text(text = "Total Cicilan: ${hutangca.formatRupiah(hutang?.totalcicilan ?: 0.0)}")
-
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(text = "Bunga: ${hutang?.bunga?.let { formatRupiah(it) } ?: "Rp0,00"}")
+                            Text(text = "Total Cicilan per Bulan: ${hutang?.totalcicilan?.let { formatRupiah(it) } ?: "Rp0,00"}")
+                            Divider(modifier = Modifier.padding(vertical = 8.dp))
+                            Text(
+                                text = "Total Keseluruhan: ${hutang?.totalHutang?.let { formatRupiah(it) } ?: "Rp0,00"}",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
                     }
 
@@ -83,39 +116,25 @@ fun SeriusPreviewHutangScreen(
 
                     Text(text = "Catatan:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = 2.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp)
+                            .defaultMinSize(minHeight = 100.dp)
                     ) {
                         Box(modifier = Modifier.padding(16.dp)) {
                             Text(text = hutang?.catatan ?: "Tidak ada catatan")
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.weight(1f)) // Mendorong tombol ke bawah
 
-                    Row(
+                    // DIUBAH KE M3: Tombol disusun dalam Column agar rapi
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = { navController.popBackStack() },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
-                        ) {
-                            Text("Kembali", color = Color.White)
-                        }
-
-                        Button(
-                            onClick = {
-                                navController.navigate("list_hutang_screen")
-                            },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
-                        ) {
-                            Text("Confirm", color = Color.White)
-                        }
-
                         Button(
                             onClick = {
                                 if (docId.isNotEmpty()) {
@@ -124,18 +143,39 @@ fun SeriusPreviewHutangScreen(
                                     Log.e("LihatJatuhTempo", "docId NULL atau kosong")
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Lihat Jatuh Tempo", color = Color.White)
+                            Text("Lihat Jadwal Cicilan")
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
 
                         hutang?.let { data ->
                             QrCodeDialogButton(data = "lunasin://previewHutang?docId=${data.docId}")
+                        }
+
+                        Button(
+                            onClick = { navController.navigate("home_screen") { popUpTo(0) } },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Selesai & Kembali ke Home")
+                        }
+
+                        Button(
+                            onClick = { navController.popBackStack() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Kembali")
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Divider(modifier: Modifier) {
+
 }

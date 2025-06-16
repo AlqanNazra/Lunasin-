@@ -1,5 +1,6 @@
 package com.example.lunasin.Frontend.UI.Inputhutang
 
+// DIUBAH KE M3: Mengganti semua import ke material3
 import android.app.DatePickerDialog
 import android.util.Log
 import android.widget.Toast
@@ -8,17 +9,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Button
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,7 +31,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -47,7 +51,6 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
     var navigateToPreview by remember { mutableStateOf<String?>(null) }
     var catatan by remember { mutableStateOf("") }
 
-
     var isLoading by remember { mutableStateOf(false) }
     var showPopup by remember { mutableStateOf(false) }
     var popupMessage by remember { mutableStateOf("") }
@@ -65,20 +68,25 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
         ).show()
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Masukkan Data", fontSize = 20.sp, color = Color(0xFF008D36))
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()) // DIUBAH KE M3: Menambahkan scroll
+    ) {
+        // DIUBAH KE M3: Menggunakan warna dari tema
+        Text("Masukkan Data", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
         Text("Luna butuh info-info ini buat bisa catat hutang kamu", fontSize = 14.sp)
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Input Nama Pinjaman
+        // DIUBAH KE M3: Menggunakan OutlinedTextField dari Material3
         OutlinedTextField(
             value = namaPinjaman,
             onValueChange = { namaPinjaman = it },
             label = { Text("Nama Pinjaman") },
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Nominal Pinjaman
         OutlinedTextField(
             value = nominalPinjaman,
             onValueChange = { nominalPinjaman = it },
@@ -86,17 +94,17 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Bunga
         OutlinedTextField(
             value = bunga,
             onValueChange = { bunga = it },
-            label = { Text("Denda Bila Telat Bayar") },
+            label = { Text("Denda Bila Telat Bayar (%)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Periode Pinjaman
         OutlinedTextField(
             value = lamaPinjaman,
             onValueChange = { lamaPinjaman = it },
@@ -104,7 +112,6 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -122,8 +129,8 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
                 }
             }
         )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Input Catatan
         OutlinedTextField(
             value = catatan,
             onValueChange = { catatan = it },
@@ -131,17 +138,15 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Tombol Confirm
+        // DIUBAH KE M3: Menggunakan Button dari Material3
         Button(
             onClick = {
                 if (tanggalPinjam == "Pilih Tanggal") {
                     Toast.makeText(context, "Harap pilih tanggal pinjaman!", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
-
                 val pinjamanValue = nominalPinjaman.toDoubleOrNull()
                 val bungaValue = bunga.toDoubleOrNull()
                 val lamaPinjamValue = lamaPinjaman.toIntOrNull()
@@ -152,7 +157,7 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
                 }
 
                 isLoading = true
-                Log.d("InputHutangScreen", "Mengirim data ke Firestore...")
+                Log.d("PerhitunganHutangScreen", "Mengirim data ke Firestore...")
 
                 hutangViewModel.hitungDanSimpanHutang(
                     hutangType = HutangViewModel.HutangType.PERHITUNGAN,
@@ -173,52 +178,36 @@ fun PerhitunganHutangScreen(hutangViewModel: HutangViewModel, navController: Nav
             enabled = !isLoading
         ) {
             if (isLoading) {
-                CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
+                // DIUBAH KE M3: CircularProgressIndicator M3 lebih simpel
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary // Warna diambil dari tema
+                )
             } else {
                 Text("Confirm")
             }
         }
 
-
         LaunchedEffect(navigateToPreview) {
             navigateToPreview?.let { docId ->
-                showPopup = false
-                delay(500)
-                navController.navigate("perhitungan_preview_hutang/$docId")  // Navigasi ke Preview Hutang
+                delay(500) // delay untuk user sempat melihat popup
+                navController.navigate("perhitungan_preview_hutang/$docId")
                 navigateToPreview = null
             }
         }
 
-
-        // Dialog Loading
-        if (isLoading) {
-            AlertDialog(
-                onDismissRequest = { },
-                title = { Text("Mengirim Data...") },
-                text = {
-                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Harap tunggu...")
-                    }
-                },
-                confirmButton = { }
-            )
-        }
-
-        // Popup Notifikasi
+        // DIUBAH KE M3: AlertDialog menggunakan sintaks M3
         if (showPopup) {
             AlertDialog(
                 onDismissRequest = { showPopup = false },
                 title = { Text("Status") },
                 text = { Text(popupMessage) },
                 confirmButton = {
-                    Button(onClick = { showPopup = false }) {
+                    TextButton(onClick = { showPopup = false }) {
                         Text("OK")
                     }
                 }
             )
         }
-
     }
 }

@@ -22,13 +22,13 @@ data class ChartEntry(
 )
 
 data class StatisticData(
-    val totalMonthlyIncome: Double,
-    val totalExpense: Double,
-    val incomeEntries: List<ChartEntry>,
-    val expenseEntries: List<ChartEntry>,
-    val datesForXAxis: List<String>,
-    val expenseByCategory: Map<String, Double>,
-    val dateRangeText: String,
+    val totalMonthlyIncome: Double = 0.0,
+    val totalExpense: Double = 0.0,
+    val incomeEntries: List<ChartEntry> = emptyList(),
+    val expenseEntries: List<ChartEntry> = emptyList(),
+    val datesForXAxis: List<String> = emptyList(),
+    val expenseByCategory: Map<String, Double> = emptyMap(),
+    val dateRangeText: String = "Memuat...",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

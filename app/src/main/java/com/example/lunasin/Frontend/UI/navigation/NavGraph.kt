@@ -1,46 +1,59 @@
 package com.example.lunasin.Frontend.UI.navigation
 
+import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-//import com.example.lunasin.Frontend.UI.login.* // Import ini tidak perlu jika hanya pakai LoginScreen, dll
+import com.example.lunasin.Backend.Data.management_data.HutangRepository
+import com.example.lunasin.Backend.Data.profile_data.ProfileRepository
+import com.example.lunasin.Frontend.UI.Home.HomeScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.ListHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.PerhitunganHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.PerhitunganPreviewHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.PilihHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.SeriusHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.SeriusPreviewHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.TanggalTempoScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.TemanHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.TemanPreviewHutangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.utang.ListUtangScreen
+import com.example.lunasin.Frontend.UI.Inputhutang.utang.PreviewUtangScreen
+import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
+import com.example.lunasin.Frontend.UI.Statistic.StatisticScreen
 import com.example.lunasin.Frontend.viewmodel.Hutang.HutangViewModel
-import com.example.lunasin.Frontend.UI.Inputhutang.*
+import com.example.lunasin.Frontend.viewmodel.Statistic.StatisticViewModel
+import com.example.lunasin.Frontend.viewmodel.Statistic.StatisticViewModelFactory
 import com.example.lunasin.ui.screens.ForgotPasswordScreen
 import com.example.lunasin.ui.screens.LoginScreen
 import com.example.lunasin.ui.screens.SignUpScreen
-import com.example.lunasin.viewmodel.AuthViewModel // Menggunakan AuthViewModel yang di root package
-import com.example.lunasin.Frontend.UI.Home.*
-import com.example.lunasin.Frontend.UI.Inputhutang.utang.*
-import com.example.lunasin.Frontend.UI.Profile.ProfileScreen
+import com.example.lunasin.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
-// IMPORT TAMBAHAN YANG DIBUTUHKAN UNTUK STATISTIK
-import androidx.lifecycle.viewmodel.compose.viewModel // Untuk viewModel() Composable
-import com.example.lunasin.Backend.Data.profile_data.ProfileRepository // Import Repository
-import com.example.lunasin.Backend.Data.management_data.HutangRepository // Import Repository
-import com.example.lunasin.Frontend.UI.Statistic.StatisticScreen
-import com.example.lunasin.Frontend.viewmodel.Statistic.StatisticViewModel
-import com.example.lunasin.Frontend.viewmodel.Statistic.StatisticViewModelFactory
-import com.example.lunasin.UI.Statistic.StatisticScreen // IMPORT INI UNTUK SCREEN STATISTIK
-import com.google.firebase.firestore.FirebaseFirestore // Untuk inisialisasi Firestore di ViewModelFactory
-
+// DIUBAH: Menghapus parameter startDestination yang tidak terpakai
 @Composable
-fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, startDestination: String) {
-    val navController = rememberNavController() // rememberNavController() sudah ada di sini
+fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel) {
+    val navController = rememberNavController()
+
+    // Menentukan tujuan awal berdasarkan status login
+    val startDestination = if (FirebaseAuth.getInstance().currentUser != null) {
+        "home_screen"
+    } else {
+        Screen.Login.route
+    }
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route // Menggunakan Screen.Login.route sebagai startDestination default
+        startDestination = startDestination // Menggunakan tujuan awal yang sudah ditentukan
     ) {
         composable(Screen.Login.route) {
             LoginScreen(authViewModel, navController)
         }
-
         composable(Screen.SignUp.route) {
             SignUpScreen(authViewModel, navController)
         }
@@ -76,18 +89,15 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
             PilihHutangScreen(navController)
         }
         composable("list_hutang_screen") { ListHutangScreen(hutangViewModel, navController) }
-
         composable("home_screen") {
-            HomeScreen(navController,hutangViewModel)
+            HomeScreen(navController, hutangViewModel)
         }
         composable(Screen.Profile.route) {
             ProfileScreen(navController)
         }
-
         composable("list_utang_screen") {
             ListUtangScreen(hutangViewModel, navController)
         }
-
         composable(
             route = "preview_utang/{docId}",
             arguments = listOf(navArgument("docId") { type = NavType.StringType })
@@ -102,20 +112,22 @@ fun NavGraph(authViewModel: AuthViewModel, hutangViewModel: HutangViewModel, sta
             )
         }
 
-        // --- TAMBAHKAN RUTE UNTUK STATISTIC SCREEN DI SINI ---
+        // --- RUTE STATISTIK YANG DIPERBAIKI ---
         composable(Screen.Statistic.route) {
-            // Inisialisasi ViewModel Statistik dengan Factory
+            // Ambil application context agar aman
+            val application = LocalContext.current.applicationContext as Application
+
             val statisticViewModel: StatisticViewModel = viewModel(
                 factory = StatisticViewModelFactory(
-                    profileRepository = ProfileRepository(),
+                    // Menggunakan application context yang aman untuk Repository
+                    profileRepository = ProfileRepository(application),
                     hutangRepository = HutangRepository(FirebaseFirestore.getInstance())
                 )
             )
             StatisticScreen(
-                navController = navController, // Lewatkan navController ke StatisticScreen
-                statisticViewModel = statisticViewModel // Lewatkan ViewModel yang sudah dibuat
+                navController = navController,
+                statisticViewModel = statisticViewModel
             )
         }
-        // ---------------------------------------------------
     }
 }
