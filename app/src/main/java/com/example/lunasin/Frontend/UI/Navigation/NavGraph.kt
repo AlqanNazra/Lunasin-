@@ -54,7 +54,7 @@ fun NavGraph(
         // Profile
         composable(Screen.Profile.route) {
             val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
-            ProfileScreen(navController, authViewModel, profileViewModel)
+            ProfileScreen(hutangViewModel,navController, authViewModel, profileViewModel)
         }
 
         // Input Piutang

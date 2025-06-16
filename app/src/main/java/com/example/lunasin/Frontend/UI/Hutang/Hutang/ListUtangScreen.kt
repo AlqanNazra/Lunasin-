@@ -47,11 +47,72 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import java.time.LocalDate
 
+// Composable for displaying debt summary in the dialog
+@Composable
+fun HutangSummary(hutang: Hutang) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = hutang.namapinjaman.firstOrNull()?.uppercase() ?: "H",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = hutang.namapinjaman,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Nominal: Rp ${String.format("%,.0f", hutang.nominalpinjaman)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary)
+                )
+                if (hutang.hutangType == HutangType.SERIUS) {
+                    val nextTempo = hutang.listTempo
+                        .filter { try { LocalDate.parse(it.tanggalTempo) >= LocalDate.now() } catch (e: Exception) { false } }
+                        .minByOrNull { LocalDate.parse(it.tanggalTempo) }
+                    nextTempo?.let {
+                        Text(
+                            text = "Angsuran ke-${it.angsuranKe}: ${it.tanggalTempo}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, color = Black.copy(alpha = 0.7f))
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Jatuh Tempo: ${hutang.tanggalJatuhTempo}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, color = Black.copy(alpha = 0.7f))
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Updated ListUtangScreen with new button and dialog
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostController) {
@@ -62,6 +123,9 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
+    var showApproachingDebts by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState()
+
 
     // Ambil data hutang saya saat screen ditampilkan
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
@@ -104,13 +168,12 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                         .addOnSuccessListener { barcode ->
                             val docId = barcode.rawValue?.trim()
                             if (!docId.isNullOrEmpty()) {
-                                Log.d("QRScan", "Scanned docId: $docId") // Tambahkan log di sini
+                                Log.d("QRScan", "Scanned docId: $docId")
                                 coroutineScope.launch {
                                     isLoading = true
                                     hutangViewModel.getHutangById(docId) { errorMessage ->
                                         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                                     }
-                                    // Setelah data dimuat, navigasi ke layar preview sesuai hutangType
                                     hutangViewModel.hutangState.value?.let { hutang ->
                                         when (hutang.hutangType) {
                                             HutangType.TEMAN -> navController.navigate("hutang_teman_preview/$docId")
@@ -118,11 +181,11 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                                             HutangType.SERIUS -> navController.navigate("hutang_serius_preview/$docId")
                                             else -> {
                                                 Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
-                                                navController.navigate("hutang_teman_preview/$docId") // Fallback
+                                                navController.navigate("hutang_teman_preview/$docId")
                                             }
                                         }
                                     } ?: run {
-                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $docId") // Log error
+                                        Log.e("QRScan", "Dokumen tidak ditemukan untuk docId: $docId")
                                         snackbarHostState.showSnackbar("Dokumen tidak ditemukan!")
                                     }
                                     isLoading = false
@@ -250,10 +313,8 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                             }
                             Log.d("SearchBar", "Mencari hutang dengan ID: $searchId")
-                            // Pastikan isLoading diatur ulang setelah proses selesai
                             coroutineScope.launch {
-                                // Tunggu hingga getHutangById selesai (opsional, tergantung kebutuhan)
-                                delay(2000) // Timeout sementara untuk debugging
+                                delay(2000)
                                 isLoading = false
                                 hutangViewModel.hutangState.value?.let { hutang ->
                                     when (hutang.hutangType) {
@@ -289,57 +350,69 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                         )
                     }
                 }
-                @OptIn(ExperimentalMaterial3Api::class)
                 Spacer(modifier = Modifier.height(24.dp))
-                val timePickerState = rememberTimePickerState()
-                var showTimePicker by remember { mutableStateOf(false) }
 
+                // Tombol Lihat Hutang Jatuh Tempo
+                Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { showTimePicker = true },
+                    onClick = { showApproachingDebts = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Set Notifikasi Harian")
+                    Text("Lihat Hutang Jatuh Tempo")
                 }
 
-                if (showTimePicker) {
+                // Dialog untuk hutang yang akan jatuh tempo dalam 7 hari
+                if (showApproachingDebts) {
+                    val currentDate = LocalDate.now()
+                    val sevenDaysFromNow = currentDate.plusDays(7)
+                    val approachingDebts = hutangSayaList.filter { hutang ->
+                        if (hutang.hutangType == HutangType.SERIUS) {
+                            hutang.listTempo.any { tempo ->
+                                try {
+                                    val tempoDate = LocalDate.parse(tempo.tanggalTempo)
+                                    tempoDate >= currentDate && tempoDate < sevenDaysFromNow
+                                } catch (e: Exception) {
+                                    false
+                                }
+                            }
+                        } else {
+                            try {
+                                val dueDate = LocalDate.parse(hutang.tanggalJatuhTempo)
+                                dueDate >= currentDate && dueDate < sevenDaysFromNow
+                            } catch (e: Exception) {
+                                false
+                            }
+                        }
+                    }
                     AlertDialog(
-                        onDismissRequest = { showTimePicker = false },
-                        title = { Text("Pilih Waktu Notifikasi") },
+                        onDismissRequest = { showApproachingDebts = false },
+                        title = { Text("Hutang Jatuh Tempo dalam 7 Hari") },
                         text = {
-                            TimePicker(state = timePickerState)
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                hutangViewModel.scheduleDailyNotification(
-                                    context,
-                                    timePickerState.hour,
-                                    timePickerState.minute
-                                )
-                                Toast.makeText(
-                                    context,
-                                    "Notifikasi dijadwalkan setiap jam ${timePickerState.hour}:${timePickerState.minute}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                showTimePicker = false
-                            }) {
-                                Text("OK")
+                            if (approachingDebts.isEmpty()) {
+                                Text("Tidak ada hutang yang jatuh tempo dalam 7 hari.")
+                            } else {
+                                LazyColumn {
+                                    items(approachingDebts) { hutang ->
+                                        HutangSummary(hutang)
+                                    }
+                                }
                             }
                         },
-                        dismissButton = {
-                            TextButton(onClick = { showTimePicker = false }) {
-                                Text("Batal")
+                        confirmButton = {
+                            TextButton(onClick = { showApproachingDebts = false }) {
+                                Text("Tutup")
                             }
                         }
                     )
                 }
 
+
                 Spacer(modifier = Modifier.height(16.dp))
                 // Dokumen Terakhir Dibuka (Recent Search)
                 val currentUserId = hutangViewModel.currentUserId
                 recentSearch?.let { hutang ->
-                    // Hanya tampilkan jika id_penerima == currentUserId (hutang) dan bukan piutang (userId != currentUserId)
                     if (hutang.id_penerima == currentUserId.value && hutang.userId != currentUserId.value) {
                         Row(
                             modifier = Modifier
@@ -357,7 +430,7 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                             )
                             IconButton(
                                 onClick = {
-                                    hutangViewModel.clearRecentSearch() // Hapus recent search
+                                    hutangViewModel.clearRecentSearch()
                                 }
                             ) {
                                 Icon(
@@ -442,14 +515,13 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
             .padding(horizontal = 8.dp, vertical = 6.dp)
             .clickable {
                 if (hutang.docId.isNotEmpty()) {
-                    // Navigasi berdasarkan hutangType
                     when (hutang.hutangType) {
                         HutangType.TEMAN -> navController.navigate("hutang_teman_preview/${hutang.docId}")
                         HutangType.PERHITUNGAN -> navController.navigate("hutang_perhitungan_preview/${hutang.docId}")
                         HutangType.SERIUS -> navController.navigate("hutang_serius_preview/${hutang.docId}")
                         else -> {
                             Log.e("ListUtangScreen", "Tipe hutang tidak dikenali: ${hutang.hutangType}")
-                            navController.navigate("hutang_teman_preview/${hutang.docId}") // Fallback ke Teman
+                            navController.navigate("hutang_teman_preview/${hutang.docId}")
                         }
                     }
                 } else {
@@ -466,7 +538,6 @@ fun HutangItem(hutang: Hutang, navController: NavHostController) {
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ikon dekoratif di sisi kiri
             Box(
                 modifier = Modifier
                     .size(40.dp)

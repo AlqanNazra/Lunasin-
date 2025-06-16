@@ -1,6 +1,14 @@
 package com.example.lunasin.Frontend.UI.Profile
 
+import android.Manifest
+import android.app.AlarmManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,13 +33,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.KeyboardType.Companion.Uri
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.example.lunasin.Frontend.UI.Navigation.BottomNavigationBar
 import com.example.lunasin.Frontend.UI.Navigation.Screen
+import com.example.lunasin.Frontend.ViewModel.Hutang.HutangViewModel
 import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModel
 import com.example.lunasin.Frontend.ViewModel.Profile.ProfileViewModelFactory
 import com.example.lunasin.R
@@ -39,13 +50,40 @@ import com.example.lunasin.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.lunasin.Frontend.UI.Navigation.BottomNavigationBar
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    viewModel: HutangViewModel,
     navController: NavHostController,
     authViewModel: AuthViewModel,
     profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
 ) {
+    val hutang by viewModel.hutangState.collectAsState()
     val user = FirebaseAuth.getInstance().currentUser
     var isEditingPassword by remember { mutableStateOf(false) }
     var isEditingProfile by remember { mutableStateOf(false) }
@@ -54,12 +92,70 @@ fun ProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    var showTimePicker by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState(
+        initialHour = 12,
+        initialMinute = 0,
+        is24Hour = true
+    )
+    val notificationTime by viewModel.notificationTime.collectAsState()
+    val requestExactAlarmPermission by viewModel.requestExactAlarmPermission.collectAsState()
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Log.d("ProfileScreen", "Izin POST_NOTIFICATIONS diberikan")
+        } else {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Izin notifikasi diperlukan untuk menampilkan pengingat")
+            }
+        }
+    }
+
+    val exactAlarmPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) {
+            viewModel.scheduleDailyNotification(context, timePickerState.hour, timePickerState.minute)
+            Log.d("ProfileScreen", "Izin SCHEDULE_EXACT_ALARM diberikan")
+        } else {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Izin alarm akurat diperlukan untuk notifikasi")
+            }
+        }
+    }
+
+    // Launcher untuk meminta izin POST_NOTIFICATIONS
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Log.d("ProfileScreen", "Izin POST_NOTIFICATIONS diberikan")
+        } else {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Izin notifikasi diperlukan untuk menampilkan pengingat")
+            }
+        }
+    }
+
+    // Inisialisasi HutangViewModel
+    LaunchedEffect(Unit) {
+        viewModel.initialize(context)
+        // Periksa dan minta izin POST_NOTIFICATIONS untuk Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
 
     // Tampilkan error dari ViewModel jika ada
     LaunchedEffect(profileViewModel.errorMessage) {
         profileViewModel.errorMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
-            profileViewModel.errorMessage = null // Reset error setelah ditampilkan
+            profileViewModel.errorMessage = null
         }
     }
 
@@ -446,7 +542,80 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Tombol Set Notifikasi Harian
+                Button(
+                    onClick = { showTimePicker = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Set Notifikasi Harian")
+                }
+
+                // Tampilkan waktu notifikasi terkini
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = notificationTime?.let { (hour, minute) ->
+                        "Notifikasi diatur pada ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} setiap hari"
+                    } ?: "Notifikasi belum diatur",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                // Dialog untuk memilih waktu notifikasi
+                if (showTimePicker) {
+                    AlertDialog(
+                        onDismissRequest = { showTimePicker = false },
+                        title = { Text("Pilih Waktu Notifikasi") },
+                        text = {
+                            TimePicker(state = timePickerState)
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.scheduleDailyNotification(
+                                    context,
+                                    timePickerState.hour,
+                                    timePickerState.minute
+                                )
+                                Toast.makeText(
+                                    context,
+                                    "Notifikasi dijadwalkan untuk pukul ${timePickerState.hour.toString().padStart(2, '0')}:${timePickerState.minute.toString().padStart(2, '0')}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                showTimePicker = false
+                            }) {
+                                Text("OK")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showTimePicker = false }) {
+                                Text("Batal")
+                            }
+                        }
+                    )
+                }
+
+                // Tombol Nonaktifkan Optimasasi Baterai
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Nonaktifkan Optimasasi Baterai")
+                }
+
                 // Logout Button
+                Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = { signOut() },
                     modifier = Modifier

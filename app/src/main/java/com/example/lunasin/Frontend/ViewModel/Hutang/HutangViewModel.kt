@@ -33,6 +33,17 @@ import java.time.LocalDate
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import android.provider.Settings
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
 
 class HutangViewModel(private val firestoreService: FirestoreService) : ViewModel() {
     private val _hutangSayaList = MutableStateFlow<List<Hutang>>(emptyList())
@@ -47,8 +58,46 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
     private val _currentUserId = MutableStateFlow(FirebaseAuth.getInstance().currentUser?.uid.orEmpty())
     val currentUserId: StateFlow<String> = _currentUserId
 
+    // State untuk waktu notifikasi
+    private val _notificationTime = MutableStateFlow<Pair<Int, Int>?>(null)
+    val notificationTime: StateFlow<Pair<Int, Int>?> = _notificationTime.asStateFlow()
+
+    private val _requestExactAlarmPermission = MutableStateFlow(false)
+    val requestExactAlarmPermission: StateFlow<Boolean> = _requestExactAlarmPermission.asStateFlow()
+
+    // SharedPreferences untuk persistensi
+    private lateinit var sharedPreferences: SharedPreferences
+    private val PREFS_NAME = "HutangPrefs"
+    private val KEY_HOUR = "notification_hour"
+    private val KEY_MINUTE = "notification_minute"
+
     private val storage = FirebaseStorage.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
+
+    fun initialize(context: Context) {
+        sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        loadNotificationTime()
+    }
+
+    private fun loadNotificationTime() {
+        val hour = sharedPreferences.getInt(KEY_HOUR, -1)
+        val minute = sharedPreferences.getInt(KEY_MINUTE, -1)
+        if (hour != -1 && minute != -1) {
+            _notificationTime.value = Pair(hour, minute)
+            Log.d("HutangViewModel", "Waktu notifikasi dimuat: $hour:$minute")
+        } else {
+            Log.d("HutangViewModel", "Tidak ada waktu notifikasi tersimpan")
+        }
+    }
+
+    private fun saveNotificationTime(hour: Int, minute: Int) {
+        sharedPreferences.edit()
+            .putInt(KEY_HOUR, hour)
+            .putInt(KEY_MINUTE, minute)
+            .apply()
+        _notificationTime.value = Pair(hour, minute)
+        Log.d("HutangViewModel", "Waktu notifikasi disimpan: $hour:$minute")
+    }
 
     fun getHutangById(docId: String, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -501,48 +550,67 @@ class HutangViewModel(private val firestoreService: FirestoreService) : ViewMode
         }
     }
 
+
     fun scheduleDailyNotification(context: Context, hour: Int, minute: Int) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, NotificationReceiver::class.java)
+        val intent = Intent(context, NotificationReceiver::class.java).apply {
+            action = "com.example.lunasin.DAILY_REMINDER"
+            putExtra("hour", hour)
+            putExtra("minute", minute)
+        }
         val pendingIntent = PendingIntent.getBroadcast(
-            context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Set waktu notifikasi berdasarkan input
+        // Batalkan alarm sebelumnya
+        try {
+            alarmManager.cancel(pendingIntent)
+            Log.d("HutangViewModel", "Alarm sebelumnya dibatalkan")
+        } catch (e: Exception) {
+            Log.e("HutangViewModel", "Gagal membatalkan alarm sebelumnya: ${e.message}")
+        }
+
+        // Set waktu notifikasi
         val calendar = Calendar.getInstance().apply {
             timeInMillis = System.currentTimeMillis()
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
-            if (before(Calendar.getInstance())) add(Calendar.DAY_OF_MONTH, 1) // Kalau sudah lewat waktu hari ini
+            set(Calendar.MILLISECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
         }
 
-        alarmManager.setRepeating(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            AlarmManager.INTERVAL_DAY,
-            pendingIntent
-        )
-    }
-    fun showImmediateNotification(context: Context) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "daily_reminder"
+        // Periksa izin SCHEDULE_EXACT_ALARM
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.e("HutangViewModel", "Izin SCHEDULE_EXACT_ALARM tidak diberikan")
+                _requestExactAlarmPermission.value = true
+                return
+            }
+        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Daily Reminder",
-                NotificationManager.IMPORTANCE_HIGH
+        // Jadwalkan notifikasi
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
             )
-            notificationManager.createNotificationChannel(channel)
+            saveNotificationTime(hour, minute)
+            _requestExactAlarmPermission.value = false
+            Log.d("HutangViewModel", "Notifikasi dijadwalkan pada ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} untuk ${calendar.time}")
+        } catch (e: SecurityException) {
+            Log.e("HutangViewModel", "Gagal menjadwalkan notifikasi: ${e.message}")
+            _requestExactAlarmPermission.value = true
         }
 
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setContentTitle("Test Reminder")
-            .setContentText("Ini adalah notifikasi test dari Lunasin")
-            .setSmallIcon(R.drawable.ic_notification)
-            .build()
-
-        notificationManager.notify(1002, notification)
+        viewModelScope.launch {
+            println("Notifikasi dijadwalkan pada $hour:$minute")
+        }
     }
 }
