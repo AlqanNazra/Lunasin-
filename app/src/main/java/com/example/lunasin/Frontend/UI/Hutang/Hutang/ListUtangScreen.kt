@@ -292,14 +292,14 @@ fun ListUtangScreen(hutangViewModel: HutangViewModel, navController: NavHostCont
                 val timePickerState = rememberTimePickerState()
                 var showTimePicker by remember { mutableStateOf(false) }
 
-                Button(
-                    onClick = { showTimePicker = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Text("Set Notifikasi Harian")
-                }
+//                Button(
+//                    onClick = { showTimePicker = true },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(horizontal = 16.dp)
+//                ) {
+//                    Text("Set Notifikasi Harian")
+//                }
 
                 if (showTimePicker) {
                     AlertDialog(
