@@ -40,8 +40,8 @@ fun BottomNavigationBar(
     ) {
         val items = listOf(
             BottomNavItem("Home", R.drawable.ic_home, "home_screen"),
-            BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
-            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
+//            BottomNavItem("Search", R.drawable.ic_search, "search_screen"),
+//            BottomNavItem("Stats", R.drawable.ic_chart, "stats_screen"),
             BottomNavItem("Profile", R.drawable.ic_profile, "profile_screen")
         )
 
