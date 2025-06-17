@@ -150,7 +150,8 @@ fun HomeScreen(
                         }
                         OptionCard("Laporan", R.drawable.ic_chart, Color(0xFFFF9800), Modifier.weight(1f)) {
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Fitur belum diimplementasikan")
+
+                                navController.navigate("stats_screen/$userId")
                             }
                         }
                     }

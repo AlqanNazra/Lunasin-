@@ -121,7 +121,7 @@ fun NavGraph(
         // Statistika (Ditambahkan oleh saya)
         composable("stats_screen/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            StatisticsScreen(userId = userId)
+            StatisticsScreen(navController,userId = userId,hutangViewModel, piutangViewModel)
         }
     }
 }
