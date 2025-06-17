@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.lunasin.R
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @Composable
@@ -33,6 +34,7 @@ fun BottomNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val coroutineScope = rememberCoroutineScope()
+    val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
     BottomNavigation(
         backgroundColor = Color.White,
@@ -46,7 +48,7 @@ fun BottomNavigationBar(
         )
 
         items.forEach { item ->
-            val isSelected = currentRoute == item.route
+            val isSelected = currentRoute == item.route || (item.route == "stats_screen" && currentRoute?.startsWith("stats_screen/") == true)
             BottomNavigationItem(
                 icon = {
                     Box(
@@ -79,15 +81,31 @@ fun BottomNavigationBar(
                 },
                 selected = isSelected,
                 onClick = {
-                    if (item.route == "search_screen" || item.route == "stats_screen") {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Fitur belum diimplementasikan")
+                    when (item.route) {
+                        "stats_screen" -> {
+                            if (userId.isNotEmpty()) {
+                                navController.navigate("stats_screen/$userId") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            } else {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Silakan login terlebih dahulu")
+                                }
+                            }
                         }
-                    } else {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                        "search_screen" -> {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Fitur belum diimplementasikan")
+                            }
+                        }
+                        else -> {
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 }
