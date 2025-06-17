@@ -148,11 +148,11 @@ fun HomeScreen(
                         OptionCard("Piutang", R.drawable.ic_business, Color(0xFF00BCD4), Modifier.weight(1f)) {
                             navController.navigate("list_hutang_screen")
                         }
-//                        OptionCard("Laporan", R.drawable.ic_chart, Color(0xFFFF9800), Modifier.weight(1f)) {
-//                            coroutineScope.launch {
-//                                snackbarHostState.showSnackbar("Fitur belum diimplementasikan")
-//                            }
-//                        }
+                        OptionCard("Laporan", R.drawable.ic_chart, Color(0xFFFF9800), Modifier.weight(1f)) {
+                            coroutineScope.launch {
+                                navController.navigate("stats_screen/$userId")
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
